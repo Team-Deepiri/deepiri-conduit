@@ -1,0 +1,46 @@
+[package]
+name = "deepiri-conduit"
+version = "0.1.0"
+edition = "2021"
+authors = ["Deepiri"]
+description = "Local dev orchestrator for multi-service Docker Compose projects"
+license = "Apache-2.0"
+repository = "https://github.com/Team-Deepiri/deepiri-conduit"
+keywords = ["docker", "compose", "orchestration", "development", "proxy"]
+categories = ["command-line-utilities", "development-tools"]
+rust-version = "1.75"
+
+[lib]
+name = "deepiri_conduit"
+path = "src/lib.rs"
+
+[[bin]]
+name = "conduit"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive", "env"] }
+tokio = { version = "1", features = ["full"] }
+bollard = { version = "0.18", default-features = false, features = ["ssl", "rustls"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1"
+toml = "0.8"
+futures-util = "0.3"
+colored = "3"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+dirs = "6"
+chrono = { version = "0.4", features = ["serde"] }
+fs2 = "0.4"
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

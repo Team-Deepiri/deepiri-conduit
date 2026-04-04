@@ -1,0 +1,14 @@
+# Minimal fixture for integration tests (no Docker required).
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
