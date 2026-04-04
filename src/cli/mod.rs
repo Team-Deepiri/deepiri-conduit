@@ -8,6 +8,7 @@ pub mod logs;
 pub mod proxy_cmd;
 pub mod ps;
 pub mod route;
+pub mod ui;
 pub mod up;
 
 use clap::{Parser, Subcommand};
@@ -18,7 +19,8 @@ use clap::{Parser, Subcommand};
     version,
     about = "Local dev orchestrator for multi-service Docker Compose projects",
     long_about = "Conduit eliminates port conflicts, provides automatic HTTP routing via named \
-                  domains, and offers on-demand database tunnels for Docker Compose projects."
+                  domains, and offers on-demand database tunnels for Docker Compose projects. \
+                  Run `conduit ui` for a local dashboard (projects, routes, and quick commands)."
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -74,6 +76,9 @@ pub enum Command {
 
     /// Manage the shared proxy
     Proxy(proxy_cmd::ProxyCmdArgs),
+
+    /// Open a local web dashboard (projects, routes, quick commands)
+    Ui(ui::UiArgs),
 }
 
 pub async fn run(cli: Cli) -> anyhow::Result<()> {
@@ -95,6 +100,7 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
         Command::Init(args) => init::run(args, &globals).await,
         Command::Config(args) => config_cmd::run(args, &globals).await,
         Command::Proxy(args) => proxy_cmd::run(args, &globals).await,
+        Command::Ui(args) => ui::run(args, &globals).await,
     }
 }
 

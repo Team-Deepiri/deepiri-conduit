@@ -34,6 +34,8 @@ anyhow = "1"
 dirs = "6"
 chrono = { version = "0.4", features = ["serde"] }
 fs2 = "0.4"
+axum = "0.7"
+open = "5"
 
 [dev-dependencies]
 assert_cmd = "2"

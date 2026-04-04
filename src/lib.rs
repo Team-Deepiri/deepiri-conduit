@@ -11,6 +11,7 @@ pub mod project_id;
 pub mod proxy;
 pub mod registry;
 pub mod tunnel;
+pub mod ui;
 
 /// Entry point used by the `conduit` binary after CLI parse and tracing setup.
 pub async fn run(cli: cli::Cli) -> anyhow::Result<()> {

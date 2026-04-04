@@ -16,14 +16,36 @@ Use **`conduit up --no-proxy`** to skip Traefik/network rewrite and only add `co
 
 ## Install
 
+**One-liner** (Linux x86_64 — downloads the latest GitHub Release binary and verifies the checksum):
+
 ```bash
-cargo build --release
-cp target/release/conduit ~/.local/bin/   # or cargo install --path .
+curl -fsSL https://raw.githubusercontent.com/Team-Deepiri/deepiri-conduit/main/scripts/install.sh | bash
 ```
+
+Override install location:
+
+```bash
+CONDUIT_INSTALL_DIR="$HOME/bin" curl -fsSL https://raw.githubusercontent.com/Team-Deepiri/deepiri-conduit/main/scripts/install.sh | bash
+```
+
+**From a git clone** (builds a release binary with Cargo — works on any platform Rust supports):
+
+```bash
+./scripts/install.sh --from-source
+# or manually:
+cargo build --release
+cp target/release/conduit ~/.local/bin/
+```
+
+**Other options:** `cargo install --path .` or `cargo install --git https://github.com/Team-Deepiri/deepiri-conduit.git`.
+
+Prebuilt release assets are currently **Linux x86_64** only; other arches use `--from-source` or Cargo.
 
 ## Quick start
 
 ```bash
+conduit doctor
+conduit ui            # local web dashboard — projects, routes, Docker/proxy status (http://127.0.0.1:9842)
 conduit init          # optional: scaffold .conduit.yml from compose
 conduit up
 conduit ps
@@ -32,10 +54,13 @@ conduit db postgres   # after up — TCP tunnel to DB
 conduit down
 ```
 
+Use **`conduit ui --no-open`** if you do not want a browser tab opened automatically. **`conduit ui --port 8080`** changes the listen port.
+
 ## Commands
 
 | Command | Description |
 |---------|-------------|
+| `conduit ui` | Local web dashboard (state, routes, quick commands); default `http://127.0.0.1:9842` |
 | `conduit up` | Emit generated compose, create network, start Traefik if needed, `compose up` |
 | `conduit down` | `compose down` with same `-f`/`-p`, cleanup network, sync `/etc/hosts` |
 | `conduit ps` | Projects + services from state / Docker |
