@@ -10,6 +10,7 @@ pub mod docker;
 pub mod project_id;
 pub mod proxy;
 pub mod registry;
+pub mod submod;
 pub mod tunnel;
 pub mod ui;
 

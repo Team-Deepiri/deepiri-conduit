@@ -3,13 +3,13 @@
 #
 # Usage:
 #   ./scripts/install.sh              # install from source (installs Rust if needed)
-#   ./scripts/install.sh --release   # download latest release
-#   ./scripts/install.sh --rust      # just install Rust
+#   ./scripts/install.sh --release     # download latest release
+#   ./scripts/install.sh --rust     # just install Rust
 #
 # Options:
 #   --release    Download prebuilt binary (Linux x86_64)
 #   --rust      Install Rust first
-#   --force    Reinstall even if exists
+#   --force     Reinstall even if exists
 
 set -euo pipefail
 
@@ -18,47 +18,18 @@ USE_RELEASE=0
 INSTALL_RUST=0
 INSTALL_DIR="${CONDUIT_INSTALL_DIR:-$HOME/.local/bin}"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-MAGENTA='\033[0;35m'
-CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-BOLD='\033[1m'
-RESET='\033[0m'
-
-banner() {
-  cat <<'EOF'
-${MAGENTA}  ██████╗ ██████╗       ${WHITE}██╗    ██╗ █████╗ ██████╗ ███████╗
-${MAGENTA} ██╔════╝ ██╔══██╗      ${WHITE}██║    ██║██╔══██╗██╔══██╗██╔════╝
-${MAGENTA} ██║  ███╗██████╔╝      ${WHITE}██║ █╗ ██║███████║██████║ █████╗  
-${MAGENTA} ██║   ██║██╔══██╗      ${WHITE}██║███╗██║██╔══██║██╔══██╗██╔══╝  
-${MAGENTA} ╚██████╔╝██║  ██║      ╚███╔███╔╝██║  ██║██║  ██║███████╗
-${MAGENTA}  ╚═════╝ ╚═╝  ╚═╝       ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
-${CYAN}  ══ CONDUIT ════════════════════════════════════════════${RESET}
-
-EOF
-}
-
-info() { echo -e "${CYAN}➜${RESET} $*"; }
-success() { echo -e "${GREEN}✓${RESET} $*"; }
-warn() { echo -e "${YELLOW}⚠${RESET} $*"; }
-error() { echo -e "${RED}✗${RESET} $*"; }
-
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --force) FORCE=1; shift ;;
     --release) USE_RELEASE=1; shift ;;
     --rust) INSTALL_RUST=1; shift ;;
     -h|--help)
-      banner
       echo "Usage: $0 [--release] [--rust] [--force]"
       echo ""
       echo "Options:"
       echo "  --release    Download prebuilt binary"
       echo "  --rust      Install Rust first"
-      echo "  --force     Reinstall over existing"
+      echo "  --force      Reinstall over existing"
       exit 0
       ;;
     *) echo "Unknown: $1" >&2; exit 1 ;;
@@ -68,29 +39,30 @@ done
 ensure_dir() {
   if [[ ! -d "$INSTALL_DIR" ]]; then
     mkdir -p "$INSTALL_DIR"
-    info "Created $INSTALL_DIR"
+    echo "Created: $INSTALL_DIR"
   fi
 }
 
 install_rust() {
   if command -v cargo >/dev/null 2>&1; then
-    success "Rust already installed"
+    echo "Rust already installed"
     return
   fi
 
-  info "Installing Rust..."
+  echo "Installing Rust..."
   if command -v rustup >/dev/null 2>&1; then
     rustup update stable
   else
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    source "$HOME/.cargo/env" 2>/dev/null || true
+    source "$HOME/.cargo/env"
   fi
 
-  success "Rust installed"
+  echo "✓ Rust installed"
 }
 
 check_rust() {
   if ! command -v cargo >/dev/null 2>&1; then
+    echo "Installing Rust..." >&2
     install_rust
   fi
 }
@@ -113,24 +85,24 @@ install_from_source() {
   repo_root="$(find_repo_root)"
 
   if [[ -z "$repo_root" || ! -f "$repo_root/Cargo.toml" ]]; then
-    error "Could not find deepiri-conduit repo"
+    echo "Error: Could not find deepiri-conduit repo" >&2
     echo "Run from the repo directory or clone it first" >&2
     exit 1
   fi
 
-  info "Building from source..."
+  echo "Building from source..."
   (cd "$repo_root" && cargo build --release)
 
   local dest="$INSTALL_DIR/conduit"
   if [[ -f "$dest" && "$FORCE" -eq 0 ]]; then
-    warn "Already installed: $dest"
+    echo "Already installed: $dest"
     echo "Use --force to reinstall"
     return
   fi
 
   cp -f "$repo_root/target/release/conduit" "$dest"
   chmod +x "$dest"
-  success "Installed: $dest"
+  echo "Installed: $dest"
 }
 
 download_release() {
@@ -147,17 +119,16 @@ download_release() {
   esac
 
   if [[ "$os" != linux ]] || [[ "$arch" != x86_64 ]]; then
-    error "No prebuilt for $os $arch"
-    echo "Use source install instead." >&2
+    echo "No prebuilt for $os $arch. Use source install." >&2
     exit 1
   fi
 
   url="https://github.com/Team-Deepiri/deepiri-conduit/releases/download/$tag/conduit-x86_64-unknown-linux-gnu"
 
-  info "Downloading release $tag..."
+  echo "Downloading release $tag..."
   curl -fsSL "$url" -o "$INSTALL_DIR/conduit"
   chmod +x "$INSTALL_DIR/conduit"
-  success "Installed: $INSTALL_DIR/conduit"
+  echo "Installed: $INSTALL_DIR/conduit"
 }
 
 add_to_path() {
@@ -169,7 +140,6 @@ add_to_path() {
 }
 
 main() {
-  banner
   ensure_dir
 
   if [[ "$INSTALL_RUST" -eq 1 ]]; then
@@ -185,14 +155,13 @@ main() {
   fi
 
   echo ""
-  success "Conduit installed!"
+  echo "✓ Conduit installed!"
   echo ""
   echo "Quick start:"
-  echo "  ${CYAN}conduit doctor${RESET}              # check system"
-  echo "  ${CYAN}conduit ui${RESET}                 # dashboard"
-  echo "  ${CYAN}conduit submod${RESET}             # resolve submodule conflicts"
-  echo "  ${CYAN}conduit submod --interactive${RESET}"
-  echo ""
+  echo "  conduit doctor              # check system"
+  echo "  conduit ui                 # dashboard"
+  echo "  conduit submod             # resolve submodule conflicts"
+  echo "  conduit submod --interactive"
 }
 
 main

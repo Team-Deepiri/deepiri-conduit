@@ -8,6 +8,7 @@ pub mod logs;
 pub mod proxy_cmd;
 pub mod ps;
 pub mod route;
+pub mod submod;
 pub mod ui;
 pub mod up;
 
@@ -79,6 +80,9 @@ pub enum Command {
 
     /// Open a local web dashboard (projects, routes, quick commands)
     Ui(ui::UiArgs),
+
+    /// Resolve submodule conflicts between two branches
+    Submod(submod::SubmodArgs),
 }
 
 pub async fn run(cli: Cli) -> anyhow::Result<()> {
@@ -100,8 +104,9 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
         Command::Init(args) => init::run(args, &globals).await,
         Command::Config(args) => config_cmd::run(args, &globals).await,
         Command::Proxy(args) => proxy_cmd::run(args, &globals).await,
-        Command::Ui(args) => ui::run(args, &globals).await,
-    }
+Command::Ui(args) => ui::run(args, &globals).await,
+        Command::Submod(args) => submod::run(args, &globals).await,
+}
 }
 
 /// Global options extracted from Cli, passed by reference to subcommands.
