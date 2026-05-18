@@ -1,3 +1,9 @@
+name: deepiri-conduit-codeql
+
+paths:
+  - src
+  - tests
+
 # Exclude generated/build/runtime artifact paths.
 paths-ignore:
   - '**/node_modules/**'

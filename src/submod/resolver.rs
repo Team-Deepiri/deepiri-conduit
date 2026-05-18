@@ -40,7 +40,7 @@ impl RepoScanner {
             if !base.exists() {
                 continue;
             }
-            if let Some(path) = self.scan_tree(&base, &normalized, 3) {
+            if let Some(path) = self.scan_tree(base, &normalized, 3) {
                 return Some(path);
             }
         }
@@ -51,7 +51,13 @@ impl RepoScanner {
         self.scan_recursive(base, name, max_depth, 0)
     }
 
-    fn scan_recursive(&self, dir: &Path, name: &str, max_depth: usize, current_depth: usize) -> Option<PathBuf> {
+    fn scan_recursive(
+        &self,
+        dir: &Path,
+        name: &str,
+        max_depth: usize,
+        current_depth: usize,
+    ) -> Option<PathBuf> {
         if current_depth > max_depth {
             return None;
         }
@@ -67,7 +73,9 @@ impl RepoScanner {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    if let Some(result) = self.scan_recursive(&path, name, max_depth, current_depth + 1) {
+                    if let Some(result) =
+                        self.scan_recursive(&path, name, max_depth, current_depth + 1)
+                    {
                         return Some(result);
                     }
                 }
@@ -104,7 +112,7 @@ fn normalize_repo_name(input: &str) -> String {
     if input.ends_with(".git") {
         input.trim_end_matches(".git").to_string()
     } else {
-        input.split('/').last().unwrap_or(input).to_string()
+        input.split('/').next_back().unwrap_or(input).to_string()
     }
 }
 
@@ -138,7 +146,9 @@ pub fn get_branch_commitdate(repo_path: &str, branch: &str) -> anyhow::Result<i6
         anyhow::bail!("failed to get commit date for {}", branch);
     }
     let date_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    date_str.parse().map_err(|_| anyhow::anyhow!("invalid date"))
+    date_str
+        .parse()
+        .map_err(|_| anyhow::anyhow!("invalid date"))
 }
 
 impl SubmoduleResolver {
@@ -162,17 +172,14 @@ impl SubmoduleResolver {
         for (path, left_oid) in &left_submods {
             let right_oid = right_submods.get(path);
             let is_different = match (left_oid.as_str(), right_oid.map(|s| s.as_str())) {
-                (l, Some(r)) => {
-                    let d = l != r;
-                    d
-                },
-                (l, None) => true,
+                (l, Some(r)) => l != r,
+                (_, None) => true,
             };
             if is_different {
                 conflicts.push(SubmoduleConflict::new(
                     path.clone(),
                     Some(left_oid.clone()),
-                    right_oid.map(|s| s.clone()),
+                    right_oid.cloned(),
                     left_branch.to_string(),
                     right_branch.to_string(),
                 ));
@@ -194,8 +201,22 @@ impl SubmoduleResolver {
     }
 
     pub async fn resolve_all(&self, conflicts: &mut [SubmoduleConflict]) -> anyhow::Result<()> {
-        let left_date = get_branch_commitdate(&self.repo_path, &conflicts.first().map(|c| c.left_branch.as_str()).unwrap_or("main")).unwrap_or(0);
-        let right_date = get_branch_commitdate(&self.repo_path, &conflicts.first().map(|c| c.right_branch.as_str()).unwrap_or("main")).unwrap_or(0);
+        let left_date = get_branch_commitdate(
+            &self.repo_path,
+            conflicts
+                .first()
+                .map(|c| c.left_branch.as_str())
+                .unwrap_or("main"),
+        )
+        .unwrap_or(0);
+        let right_date = get_branch_commitdate(
+            &self.repo_path,
+            conflicts
+                .first()
+                .map(|c| c.right_branch.as_str())
+                .unwrap_or("main"),
+        )
+        .unwrap_or(0);
 
         let resolution = if right_date >= left_date {
             SubmoduleResolution::UseRight
@@ -212,7 +233,14 @@ impl SubmoduleResolver {
 
     pub async fn init_submodules(&self) -> anyhow::Result<()> {
         let output = Command::new("git")
-            .args(["-C", &self.repo_path, "submodule", "update", "--init", "--recursive"])
+            .args([
+                "-C",
+                &self.repo_path,
+                "submodule",
+                "update",
+                "--init",
+                "--recursive",
+            ])
             .output()?;
 
         if !output.status.success() {
@@ -240,7 +268,11 @@ impl SubmoduleResolver {
         }
     }
 
-    pub async fn apply_resolution(&self, conflict: &SubmoduleConflict, _target_branch: &str) -> anyhow::Result<()> {
+    pub async fn apply_resolution(
+        &self,
+        conflict: &SubmoduleConflict,
+        _target_branch: &str,
+    ) -> anyhow::Result<()> {
         let resolution = conflict
             .resolution
             .expect("conflict must be resolved first");
@@ -258,32 +290,53 @@ impl SubmoduleResolver {
             }
         };
 
-        let commit = commit.ok_or_else(|| anyhow::anyhow!("no commit to apply for {}", conflict.path))?;
+        let commit =
+            commit.ok_or_else(|| anyhow::anyhow!("no commit to apply for {}", conflict.path))?;
 
         let path = Path::new(&self.repo_path).join(&conflict.path);
         let output = Command::new("git")
             .args(["-C", path.to_str().unwrap(), "checkout", commit])
             .output()?;
         if !output.status.success() {
-            anyhow::bail!("failed to update submodule: {}", String::from_utf8_lossy(&output.stderr));
+            anyhow::bail!(
+                "failed to update submodule: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
         }
 
         let output = Command::new("git")
-            .args(["-C", &self.repo_path, "submodule", "update", "--init", &conflict.path])
+            .args([
+                "-C",
+                &self.repo_path,
+                "submodule",
+                "update",
+                "--init",
+                &conflict.path,
+            ])
             .output()?;
         if !output.status.success() {
-            anyhow::bail!("failed to update submodule in parent: {}", String::from_utf8_lossy(&output.stderr));
+            anyhow::bail!(
+                "failed to update submodule in parent: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
         }
 
         Ok(())
     }
 
-    pub async fn commit_and_push(&self, message: &str, target_branch: Option<&str>) -> anyhow::Result<()> {
+    pub async fn commit_and_push(
+        &self,
+        message: &str,
+        target_branch: Option<&str>,
+    ) -> anyhow::Result<()> {
         let output = Command::new("git")
             .args(["-C", &self.repo_path, "add", "-A"])
             .output()?;
         if !output.status.success() {
-            anyhow::bail!("git add failed: {}", String::from_utf8_lossy(&output.stderr));
+            anyhow::bail!(
+                "git add failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
         }
 
         let output = Command::new("git")
@@ -303,7 +356,10 @@ impl SubmoduleResolver {
             .args(["-C", &self.repo_path, "push", "origin", branch])
             .output()?;
         if !output.status.success() {
-            anyhow::bail!("git push failed: {}", String::from_utf8_lossy(&output.stderr));
+            anyhow::bail!(
+                "git push failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
         }
 
         Ok(())
@@ -312,12 +368,15 @@ impl SubmoduleResolver {
     fn list_submodules(&self, branch: &str) -> anyhow::Result<HashMap<String, String>> {
         let input = branch.to_string();
         let normalized = normalize_branch(&input);
-        
+
         let output = Command::new("git")
             .args(["-C", &self.repo_path, "ls-tree", &normalized])
             .output()?;
         if !output.status.success() {
-            anyhow::bail!("failed to list submodules: {}", String::from_utf8_lossy(&output.stderr));
+            anyhow::bail!(
+                "failed to list submodules: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
         }
 
         let mut submods = HashMap::new();
