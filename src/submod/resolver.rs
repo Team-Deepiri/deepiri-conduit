@@ -166,7 +166,7 @@ impl SubmoduleResolver {
                     let d = l != r;
                     d
                 },
-                (l, None) => true,
+                (_l, None) => true,
             };
             if is_different {
                 conflicts.push(SubmoduleConflict::new(

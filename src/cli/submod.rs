@@ -5,7 +5,7 @@ use std::process::Command;
 use clap::Parser;
 
 use crate::cli::GlobalOpts;
-use crate::submod::resolver::{fetch_if_needed, RepoScanner, SubmoduleResolver};
+use crate::submod::resolver::{fetch_if_needed, SubmoduleResolver};
 
 const RED: &str = "\x1b[0;31m";
 const GREEN: &str = "\x1b[0;32m";
