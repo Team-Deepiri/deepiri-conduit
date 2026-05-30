@@ -43,29 +43,3 @@ impl SubmoduleConflict {
         self.resolution.is_some()
     }
 }
-
-fn commit_priority(commit: &str) -> Option<u32> {
-    commit.get(0..40).map(|_| {
-        commit
-            .chars()
-            .filter(|c| c.is_ascii_hexdigit())
-            .map(|c| c.to_digit(16).unwrap_or(0))
-            .take(8)
-            .sum()
-    })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_commit_priority() {
-        let c1 = "abc1234567890def1234567890abcdef12345678";
-        let c2 = "ffffffffffffffffffffffffffffffffffffffff";
-        let c3 = "0000000000000000000000000000000000000000";
-
-        assert!(commit_priority(c1).unwrap() > commit_priority(c3).unwrap());
-        assert_eq!(commit_priority(c2).unwrap(), u32::MAX);
-    }
-}
