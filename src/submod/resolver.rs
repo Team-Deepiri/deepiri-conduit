@@ -172,8 +172,11 @@ impl SubmoduleResolver {
         for (path, left_oid) in &left_submods {
             let right_oid = right_submods.get(path);
             let is_different = match (left_oid.as_str(), right_oid.map(|s| s.as_str())) {
-                (l, Some(r)) => l != r,
-                (_, None) => true,
+                (l, Some(r)) => {
+                    let d = l != r;
+                    d
+                },
+                (_l, None) => true,
             };
             if is_different {
                 conflicts.push(SubmoduleConflict::new(
