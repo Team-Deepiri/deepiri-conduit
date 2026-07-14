@@ -193,18 +193,17 @@ async fn print_stats(
 
         println!(
             "  {:<18} {:<22} {:>8} {:>12} {:>12} {:>6}",
-            project,
-            service,
-            cpu_colored,
-            mem_colored,
-            pct_colored,
-            stats.pids,
+            project, service, cpu_colored, mem_colored, pct_colored, stats.pids,
         );
     }
 
     if is_once {
         println!();
-        println!("  Use {} without {} for live refresh", "conduit top", "--once".cyan());
+        println!(
+            "  Use {} without {} for live refresh",
+            "conduit top",
+            "--once".cyan()
+        );
     }
 
     Ok(())
