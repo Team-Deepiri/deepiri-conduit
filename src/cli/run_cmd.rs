@@ -46,7 +46,11 @@ pub async fn run(args: RunArgs, cli: &GlobalOpts) -> Result<()> {
             "Service '{}' not found in project '{}'. Available: {}",
             args.service,
             project_name,
-            available.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+            available
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         )
     })?;
 
@@ -60,11 +64,7 @@ pub async fn run(args: RunArgs, cli: &GlobalOpts) -> Result<()> {
     let tty_flag = if args.no_tty { "" } else { "-it" };
     let rm_flag = if args.rm { "--rm" } else { "" };
 
-    let mut cmd_args = vec![
-        "compose".to_string(),
-        "-f".to_string(),
-        compose_file,
-    ];
+    let mut cmd_args = vec!["compose".to_string(), "-f".to_string(), compose_file];
 
     let compose_project = &project.compose_project_name;
     if !compose_project.is_empty() {

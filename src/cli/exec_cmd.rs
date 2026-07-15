@@ -12,7 +12,11 @@ pub struct ExecArgs {
     pub service: String,
 
     /// Command to run (default: /bin/sh)
-    #[arg(trailing_var_arg = true, allow_hyphen_values = true, default_value = "/bin/sh")]
+    #[arg(
+        trailing_var_arg = true,
+        allow_hyphen_values = true,
+        default_value = "/bin/sh"
+    )]
     pub command: Vec<String>,
 
     /// Target project (default: current directory)
@@ -36,10 +40,7 @@ pub async fn run(args: ExecArgs, cli: &GlobalOpts) -> Result<()> {
 
     if args.capture {
         let output = tokio::process::Command::new("docker")
-            .args([
-                "exec",
-                &container_name,
-            ])
+            .args(["exec", &container_name])
             .args(&args.command)
             .output()
             .await
@@ -75,9 +76,10 @@ pub async fn run(args: ExecArgs, cli: &GlobalOpts) -> Result<()> {
         .stdout(std::process::Stdio::inherit())
         .stderr(std::process::Stdio::inherit());
 
-    let status = cmd.status().await.with_context(|| {
-        format!("Failed to exec into container {}", container_name)
-    })?;
+    let status = cmd
+        .status()
+        .await
+        .with_context(|| format!("Failed to exec into container {}", container_name))?;
 
     if !status.success() {
         anyhow::bail!("Command exited with code {}", status);
@@ -99,18 +101,19 @@ fn resolve_target(
             .get(project_name)
             .with_context(|| format!("Project '{}' not found in state", project_name))?;
 
-        let svc = project
-            .services
-            .get(&args.service)
-            .with_context(|| {
-                let available: Vec<&String> = project.services.keys().collect();
-                format!(
-                    "Service '{}' not found in project '{}'. Available: {}",
-                    args.service,
-                    project_name,
-                    available.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
-                )
-            })?;
+        let svc = project.services.get(&args.service).with_context(|| {
+            let available: Vec<&String> = project.services.keys().collect();
+            format!(
+                "Service '{}' not found in project '{}'. Available: {}",
+                args.service,
+                project_name,
+                available
+                    .iter()
+                    .map(|s| s.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })?;
 
         return Ok((
             project_name.clone(),
@@ -128,13 +131,21 @@ fn resolve_target(
     for (name, project) in &conduit_state.projects {
         if project.directory == current_dir || project.directory.ends_with(&current_dir) {
             if let Some(svc) = project.services.get(&args.service) {
-                return Ok((name.clone(), svc.container_name.clone(), args.service.clone()));
+                return Ok((
+                    name.clone(),
+                    svc.container_name.clone(),
+                    args.service.clone(),
+                ));
             }
             let available: Vec<&String> = project.services.keys().collect();
             anyhow::bail!(
                 "Service '{}' not found. Available: {}",
                 args.service,
-                available.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+                available
+                    .iter()
+                    .map(|s| s.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
             );
         }
     }
@@ -157,7 +168,11 @@ fn resolve_target(
         .map(|c| project_name_from_container(&conduit_state, &c.id))
         .unwrap_or_default();
 
-    Ok((project_name, container.name.clone(), container.service.clone()))
+    Ok((
+        project_name,
+        container.name.clone(),
+        container.service.clone(),
+    ))
 }
 
 fn project_name_from_container(state: &state::ConduitState, container_id: &str) -> String {
