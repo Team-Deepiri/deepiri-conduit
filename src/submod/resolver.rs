@@ -175,7 +175,7 @@ impl SubmoduleResolver {
                 (l, Some(r)) => {
                     let d = l != r;
                     d
-                },
+                }
                 (_l, None) => true,
             };
             if is_different {

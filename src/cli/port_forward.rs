@@ -46,7 +46,11 @@ pub async fn run(args: PortForwardArgs, cli: &GlobalOpts) -> Result<()> {
             "Service '{}' not found in project '{}'. Available: {}",
             args.service,
             project_name,
-            available.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+            available
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         )
     })?;
 
@@ -80,7 +84,9 @@ pub async fn run(args: PortForwardArgs, cli: &GlobalOpts) -> Result<()> {
     println!(
         "  {} Active connections: {}",
         "ℹ".blue(),
-        tunnel.active_connections.load(std::sync::atomic::Ordering::Relaxed)
+        tunnel
+            .active_connections
+            .load(std::sync::atomic::Ordering::Relaxed)
     );
     println!();
     println!("  Forward active. Press Ctrl+C to close.");
