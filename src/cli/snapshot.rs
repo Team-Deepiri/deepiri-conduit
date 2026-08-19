@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
+use chrono::Utc;
 use clap::Args;
 use colored::Colorize;
-use chrono::Utc;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::cli::GlobalOpts;
 use crate::config;
@@ -90,37 +90,38 @@ fn get_project_dir(cli: &GlobalOpts, project_arg: &Option<String>) -> Result<Pat
     std::env::current_dir().context("Failed to get current directory")
 }
 
-fn snapshots_dir(project_dir: &PathBuf) -> PathBuf {
+fn snapshots_dir(project_dir: &Path) -> PathBuf {
     project_dir.join(SNAPSHOTS_SUBDIR)
 }
 
-fn get_project_volumes(project_dir: &PathBuf) -> Result<Vec<String>> {
+fn get_project_volumes(project_dir: &Path) -> Result<Vec<String>> {
     let conduit_config = config::load_project_config(project_dir).unwrap_or_default();
     let compose_path = if let Some(file) = &conduit_config.compose_file {
         project_dir.join(file)
     } else {
-        crate::compose::parser::find_compose_file(project_dir)
-            .context("No compose file found")?
+        crate::compose::parser::find_compose_file(project_dir).context("No compose file found")?
     };
 
     let compose = crate::compose::parser::parse(&compose_path)?;
     let mut volumes = Vec::new();
 
     if let Some(vol_config) = &compose.volumes {
-        for (name, _config) in vol_config {
+        for name in vol_config.keys() {
             volumes.push(name.clone());
         }
     }
 
-    for (_svc_name, svc) in &compose.services {
+    for svc in compose.services.values() {
         if let Some(vols) = &svc.volumes {
             for vol in vols {
                 if let Some(vol_str) = vol.as_str() {
                     if let Some((first, _)) = vol_str.split_once(':') {
-                        if !first.starts_with('.') && !first.starts_with('/') && !first.starts_with('~') {
-                            if !volumes.contains(&first.to_string()) {
-                                volumes.push(first.to_string());
-                            }
+                        if !first.starts_with('.')
+                            && !first.starts_with('/')
+                            && !first.starts_with('~')
+                            && !volumes.contains(&first.to_string())
+                        {
+                            volumes.push(first.to_string());
                         }
                     }
                 }
@@ -227,7 +228,10 @@ async fn list_snapshots(args: SnapshotListArgs, cli: &GlobalOpts) -> Result<()> 
     }
 
     println!();
-    println!("  Snapshots for {}", project_dir.display().to_string().cyan());
+    println!(
+        "  Snapshots for {}",
+        project_dir.display().to_string().cyan()
+    );
     println!();
 
     for entry in &entries {
@@ -235,7 +239,11 @@ async fn list_snapshots(args: SnapshotListArgs, cli: &GlobalOpts) -> Result<()> 
         let vol_count = std::fs::read_dir(entry.path())
             .map(|d| d.count())
             .unwrap_or(0);
-        println!("  {} ({})", name.bold(), format!("{} volumes", vol_count).cyan());
+        println!(
+            "  {} ({})",
+            name.bold(),
+            format!("{} volumes", vol_count).cyan()
+        );
     }
 
     println!();
@@ -247,7 +255,11 @@ async fn restore_snapshot(args: SnapshotRestoreArgs, cli: &GlobalOpts) -> Result
     let snapshot_path = snapshots_dir(&project_dir).join(&args.name);
 
     if !snapshot_path.exists() {
-        anyhow::bail!("Snapshot '{}' not found at {}", args.name, snapshot_path.display());
+        anyhow::bail!(
+            "Snapshot '{}' not found at {}",
+            args.name,
+            snapshot_path.display()
+        );
     }
 
     let project_name = project_dir
@@ -276,11 +288,7 @@ async fn restore_snapshot(args: SnapshotRestoreArgs, cli: &GlobalOpts) -> Result
         let full_vol_name = format!("{}_{}", project_name, vol_name);
         let tar_path = entry.path();
 
-        println!(
-            "  {} Restoring volume {}",
-            "→".cyan(),
-            full_vol_name.cyan()
-        );
+        println!("  {} Restoring volume {}", "→".cyan(), full_vol_name.cyan());
 
         let status = tokio::process::Command::new("docker")
             .args([

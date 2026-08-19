@@ -19,11 +19,7 @@ async fn page_html() -> Html<String> {
         }
         Err(_) => (false, None),
     };
-    let body = super::dashboard::render(
-        &conduit_state,
-        docker_ok,
-        proxy_status.as_deref(),
-    );
+    let body = super::dashboard::render(&conduit_state, docker_ok, proxy_status.as_deref());
     Html(body)
 }
 

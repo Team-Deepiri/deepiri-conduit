@@ -193,18 +193,16 @@ async fn print_stats(
 
         println!(
             "  {:<18} {:<22} {:>8} {:>12} {:>12} {:>6}",
-            project,
-            service,
-            cpu_colored,
-            mem_colored,
-            pct_colored,
-            stats.pids,
+            project, service, cpu_colored, mem_colored, pct_colored, stats.pids,
         );
     }
 
     if is_once {
         println!();
-        println!("  Use {} without {} for live refresh", "conduit top", "--once".cyan());
+        println!(
+            "  Use conduit top without {} for live refresh",
+            "--once".cyan()
+        );
     }
 
     Ok(())
@@ -246,12 +244,12 @@ async fn get_container_stats(
                 0.0
             };
 
-            let pids = stats.pids_stats.current.unwrap_or(0) as u64;
+            let pids = stats.pids_stats.current.unwrap_or(0);
 
             let mut network_rx = 0u64;
             let mut network_tx = 0u64;
             if let Some(networks) = &stats.networks {
-                for (_name, net) in networks {
+                for net in networks.values() {
                     network_rx += net.rx_bytes;
                     network_tx += net.tx_bytes;
                 }

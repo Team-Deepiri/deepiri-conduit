@@ -158,7 +158,7 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
         Command::Init(args) => init::run(args, &globals).await,
         Command::Config(args) => config_cmd::run(args, &globals).await,
         Command::Proxy(args) => proxy_cmd::run(args, &globals).await,
-Command::Ui(args) => ui::run(args, &globals).await,
+        Command::Ui(args) => ui::run(args, &globals).await,
         Command::Submod(args) => submod::run(args, &globals).await,
         Command::Exec(args) => exec_cmd::run(args, &globals).await,
         Command::Cp(args) => cp_cmd::run(args, &globals).await,

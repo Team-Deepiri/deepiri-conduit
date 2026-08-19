@@ -75,7 +75,7 @@ async fn connect_ssh(args: ConnectSshArgs) -> Result<()> {
     let connection_name = args
         .name
         .clone()
-        .unwrap_or_else(|| args.destination.replace('@', "_").replace(':', "_"));
+        .unwrap_or_else(|| args.destination.replace(['@', ':'], "_"));
 
     let pid_file = get_pid_file(&connection_name);
 
@@ -151,10 +151,7 @@ async fn connect_ssh(args: ConnectSshArgs) -> Result<()> {
             "forwards": args.forward,
         });
 
-        std::fs::write(
-            &pid_file,
-            serde_json::to_string_pretty(&connection_info)?,
-        )?;
+        std::fs::write(&pid_file, serde_json::to_string_pretty(&connection_info)?)?;
 
         println!(
             "  {} Tunnel established in background (PID: {})",
@@ -167,7 +164,10 @@ async fn connect_ssh(args: ConnectSshArgs) -> Result<()> {
             "DOCKER_HOST=tcp://localhost:23750".cyan()
         );
         println!();
-        println!("  Use {} to disconnect", format!("conduit connect disconnect {}", connection_name).cyan());
+        println!(
+            "  Use {} to disconnect",
+            format!("conduit connect disconnect {}", connection_name).cyan()
+        );
     } else {
         println!();
         println!("  Connection active. Press Ctrl+C to close.");
@@ -297,8 +297,7 @@ async fn list_connections(args: ConnectListArgs) -> Result<()> {
 }
 
 fn get_connections_dir() -> std::path::PathBuf {
-    let base = dirs::data_local_dir()
-        .unwrap_or_else(|| std::path::PathBuf::from("~/.local/share"));
+    let base = dirs::data_local_dir().unwrap_or_else(|| std::path::PathBuf::from("~/.local/share"));
     base.join("conduit").join("connections")
 }
 
@@ -315,7 +314,12 @@ fn list_connection_files() -> Result<Vec<String>> {
     let mut names = Vec::new();
     for entry in std::fs::read_dir(&dir)? {
         let entry = entry?;
-        if entry.path().extension().map(|e| e == "json").unwrap_or(false) {
+        if entry
+            .path()
+            .extension()
+            .map(|e| e == "json")
+            .unwrap_or(false)
+        {
             if let Some(name) = entry.path().file_stem() {
                 names.push(name.to_string_lossy().to_string());
             }

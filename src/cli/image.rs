@@ -1,9 +1,9 @@
 use anyhow::Result;
+use bollard::image::{ListImagesOptions, PruneImagesOptions};
+use bollard::Docker;
 use clap::Args;
 use colored::Colorize;
 use std::collections::HashMap;
-use bollard::image::{ListImagesOptions, PruneImagesOptions};
-use bollard::Docker;
 
 use crate::cli::GlobalOpts;
 use crate::docker;
@@ -110,12 +110,7 @@ async fn list_images(docker: &Docker, args: ImageListArgs) -> Result<()> {
             let repo = parts.first().unwrap_or(&"?");
             let tag_val = parts.get(1).unwrap_or(&"latest");
             let size_mb = img.size as f64 / 1_000_000.0;
-            println!(
-                "  {:<50} {:<15} {:.1} MB",
-                repo.cyan(),
-                tag_val,
-                size_mb,
-            );
+            println!("  {:<50} {:<15} {:.1} MB", repo.cyan(), tag_val, size_mb,);
         }
     }
 
@@ -153,8 +148,8 @@ async fn prune_images(docker: &Docker, args: ImagePruneArgs) -> Result<()> {
 }
 
 async fn pull_image(docker: &Docker, args: ImagePullArgs) -> Result<()> {
-    use futures_util::StreamExt;
     use bollard::image::CreateImageOptions;
+    use futures_util::StreamExt;
 
     let parts: Vec<&str> = args.image.splitn(2, ':').collect();
     let (from_image, tag) = if parts.len() == 2 {

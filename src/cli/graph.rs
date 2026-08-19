@@ -57,7 +57,11 @@ pub async fn run(args: GraphArgs, cli: &GlobalOpts) -> Result<()> {
     let compose = parser::parse(&compose_path)?;
 
     println!();
-    println!("  {} Dependency graph for {}", "Graph".bold(), project_name.bold());
+    println!(
+        "  {} Dependency graph for {}",
+        "Graph".bold(),
+        project_name.bold()
+    );
     println!();
 
     let services: Vec<&String> = compose.services.keys().collect();
@@ -65,7 +69,13 @@ pub async fn run(args: GraphArgs, cli: &GlobalOpts) -> Result<()> {
     if args.format == "mermaid" {
         print_mermaid(&compose, &services, &args.service);
     } else {
-        print_ascii(&compose, &services, &args.service, 0, &mut std::collections::HashSet::new());
+        print_ascii(
+            &compose,
+            &services,
+            &args.service,
+            0,
+            &mut std::collections::HashSet::new(),
+        );
     }
 
     println!();
@@ -86,7 +96,7 @@ fn print_ascii(
             continue;
         }
 
-        let is_highlighted = highlight.as_ref().map_or(false, |h| h == *svc_name);
+        let is_highlighted = highlight.as_ref().is_some_and(|h| h == *svc_name);
         let label = if is_highlighted {
             svc_name.bold().green().to_string()
         } else {
@@ -102,7 +112,10 @@ fn print_ascii(
         if let Some(svc) = compose.services.get(*svc_name) {
             if let Some(dep) = &svc.depends_on {
                 let dep_names = dep.service_names();
-                let dep_refs: Vec<&String> = dep_names.iter().filter(|d| compose.services.contains_key(*d)).collect();
+                let dep_refs: Vec<&String> = dep_names
+                    .iter()
+                    .filter(|d| compose.services.contains_key(*d))
+                    .collect();
                 if !dep_refs.is_empty() {
                     print_ascii(compose, &dep_refs, highlight, depth + 1, visited);
                 }
@@ -144,6 +157,5 @@ fn find_compose(
             return Ok(path);
         }
     }
-    parser::find_compose_file(project_dir)
-        .context("No compose file found in project directory")
+    parser::find_compose_file(project_dir).context("No compose file found in project directory")
 }

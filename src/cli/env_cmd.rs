@@ -45,7 +45,10 @@ pub async fn run(args: EnvArgs, cli: &GlobalOpts) -> Result<()> {
     }
 
     if args.json {
-        println!("{}", serde_json::to_string_pretty(&env_map).context("Failed to serialize env")?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&env_map).context("Failed to serialize env")?
+        );
         return Ok(());
     }
 
@@ -82,7 +85,11 @@ pub async fn run(args: EnvArgs, cli: &GlobalOpts) -> Result<()> {
     }
 
     println!();
-    println!("  {} variables total (use {} for JSON)", pairs.len(), "conduit env --json".cyan());
+    println!(
+        "  {} variables total (use {} for JSON)",
+        pairs.len(),
+        "conduit env --json".cyan()
+    );
     println!();
 
     Ok(())
@@ -132,7 +139,11 @@ fn resolve_container(
             "Service '{}' not found in project '{}'. Available: {}",
             args.service,
             project_name,
-            available.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+            available
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         )
     })?;
 

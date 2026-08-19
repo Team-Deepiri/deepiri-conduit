@@ -33,14 +33,16 @@ pub async fn run(args: BenchArgs, _cli: &GlobalOpts) -> Result<()> {
     let conduit_state = state::load()?;
 
     let routes = if let Some(single_route) = &args.route {
-        vec![(format!("custom"), single_route.clone())]
+        vec![("custom".to_string(), single_route.clone())]
     } else {
         let mut all_routes = Vec::new();
-        for (_name, project) in &conduit_state.projects {
+        for project in conduit_state.projects.values() {
             if let Some(ref project_name) = args.project {
-                let name = if let Some((name, _)) = conduit_state.projects.iter().find(|(n, p)| {
-                    *n == project_name || p.directory.ends_with(project_name)
-                }) {
+                let name = if let Some((name, _)) = conduit_state
+                    .projects
+                    .iter()
+                    .find(|(n, p)| *n == project_name || p.directory.ends_with(project_name))
+                {
                     name.clone()
                 } else {
                     continue;
@@ -54,9 +56,7 @@ pub async fn run(args: BenchArgs, _cli: &GlobalOpts) -> Result<()> {
             }
         }
         if all_routes.is_empty() {
-            anyhow::bail!(
-                "No routes found. Are any conduit projects running?"
-            );
+            anyhow::bail!("No routes found. Are any conduit projects running?");
         }
         all_routes
     };
@@ -78,7 +78,10 @@ pub async fn run(args: BenchArgs, _cli: &GlobalOpts) -> Result<()> {
             .collect::<Vec<_>>()
             .join(", ")
     );
-    println!("  {} requests per endpoint, concurrency {}", args.count, args.concurrency);
+    println!(
+        "  {} requests per endpoint, concurrency {}",
+        args.count, args.concurrency
+    );
     println!();
 
     for (url, target) in &routes {
@@ -122,12 +125,7 @@ pub async fn run(args: BenchArgs, _cli: &GlobalOpts) -> Result<()> {
 
         println!(
             " {} {} OK, {} fail (min: {:?}, avg: {:?}, max: {:?})",
-            status_str,
-            successes,
-            failures,
-            min_duration,
-            avg,
-            max_duration,
+            status_str, successes, failures, min_duration, avg, max_duration,
         );
     }
 

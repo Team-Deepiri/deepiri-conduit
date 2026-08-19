@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
 use clap::Args;
 use colored::Colorize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::cli::GlobalOpts;
-use crate::config;
 use crate::compose::parser;
+use crate::config;
 
 #[derive(Args)]
 pub struct ConfigValidateArgs {
@@ -27,7 +27,11 @@ pub async fn run(args: ConfigValidateArgs, cli: &GlobalOpts) -> Result<()> {
     let config_path = resolve_config_path(&args, &project_dir)?;
 
     println!();
-    println!("  {} Validating {} ...", "Config".bold(), config_path.display().to_string().cyan());
+    println!(
+        "  {} Validating {} ...",
+        "Config".bold(),
+        config_path.display().to_string().cyan()
+    );
     println!();
 
     let contents = std::fs::read_to_string(&config_path)
@@ -47,7 +51,10 @@ pub async fn run(args: ConfigValidateArgs, cli: &GlobalOpts) -> Result<()> {
     if let Some(project) = &config.project {
         if project.is_empty() {
             errors.push("project name is empty".to_string());
-        } else if !project.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.') {
+        } else if !project
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
+        {
             warnings.push(format!(
                 "project name '{}' contains special characters — may cause issues with Docker labels",
                 project
@@ -117,7 +124,10 @@ pub async fn run(args: ConfigValidateArgs, cli: &GlobalOpts) -> Result<()> {
             if *port == 0 {
                 errors.push(format!("expose port for '{}' is invalid: {}", svc, port));
             } else if *port <= 1024 {
-                warnings.push(format!("expose port {} for '{}' is privileged (<1024)", port, svc));
+                warnings.push(format!(
+                    "expose port {} for '{}' is privileged (<1024)",
+                    port, svc
+                ));
             }
         }
     }
@@ -130,7 +140,11 @@ pub async fn run(args: ConfigValidateArgs, cli: &GlobalOpts) -> Result<()> {
 
     if !warnings.is_empty() {
         for warn in &warnings {
-            let prefix = if args.strict { "✗".red() } else { "⚠".yellow() };
+            let prefix = if args.strict {
+                "✗".red()
+            } else {
+                "⚠".yellow()
+            };
             println!("  {} {}", prefix, warn);
         }
     }
@@ -203,7 +217,7 @@ fn resolve_project_dir(cli: &GlobalOpts) -> PathBuf {
     }
 }
 
-fn resolve_config_path(args: &ConfigValidateArgs, project_dir: &PathBuf) -> Result<PathBuf> {
+fn resolve_config_path(args: &ConfigValidateArgs, project_dir: &Path) -> Result<PathBuf> {
     if let Some(file) = &args.file {
         let path = PathBuf::from(file);
         if path.is_absolute() {
