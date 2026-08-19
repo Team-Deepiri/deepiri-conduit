@@ -1846,7 +1846,7 @@ jobs:
 - [x] `cli::proxy` — `conduit proxy status`, `conduit proxy restart`
 - [ ] Write `.conduit.yml` for deepiri-platform — belongs to the `deepiri-platform` repo, not conduit
 - [x] Integration test: start project, curl domain through proxy — validated live on Docker 29 (`HTTP 200`, proxy on custom `http_port`)
-- [ ] Integration test: two projects, different domains, both work
+- [x] Integration test: two projects, different domains, both work — validated live on Docker 29 (two stacks, `link`/`unlink` cross-network access)
 
 **Deliverable:** `frontend.deepiri.local` loads in browser after `conduit up`. Self-signed HTTPS works. — HTTP routing ✅; HTTPS deferred to v1.0.
 
