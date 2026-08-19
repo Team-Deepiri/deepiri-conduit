@@ -32,7 +32,7 @@ pub async fn run(args: RouteArgs, cli: &GlobalOpts) -> Result<()> {
         "  {:<40} {:<40} {}",
         "DOMAIN".bold(),
         "TARGET".bold(),
-        "TLS".bold(),
+        "SCHEME".bold(),
     );
     println!("  {}", "─".repeat(85));
 
@@ -45,7 +45,7 @@ pub async fn run(args: RouteArgs, cli: &GlobalOpts) -> Result<()> {
 
         for (domain, target) in &project.routes {
             has_routes = true;
-            println!("  {:<40} {:<40} {}", domain.cyan(), target, "✓".green(),);
+            println!("  {:<40} {:<40} {}", domain.cyan(), target, "http".green(),);
         }
     }
 
