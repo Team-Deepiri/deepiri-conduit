@@ -80,7 +80,7 @@ pub enum Command {
     Unlink(link::UnlinkArgs),
 
     /// Check system requirements and diagnose issues
-    Doctor,
+    Doctor(doctor::DoctorArgs),
 
     /// Generate a .conduit.yml from an existing compose file
     Init(init::InitArgs),
@@ -153,7 +153,7 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
         Command::Route(args) => route::run(args, &globals).await,
         Command::Link(args) => link::run_link(args, &globals).await,
         Command::Unlink(args) => link::run_unlink(args, &globals).await,
-        Command::Doctor => doctor::run(&globals).await,
+        Command::Doctor(args) => doctor::run(args, &globals).await,
         Command::Init(args) => init::run(args, &globals).await,
         Command::Config(args) => config_cmd::run(args, &globals).await,
         Command::Proxy(args) => proxy_cmd::run(args, &globals).await,
