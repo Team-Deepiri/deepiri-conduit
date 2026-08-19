@@ -123,7 +123,7 @@ pub enum Command {
     Bench(bench::BenchArgs),
 
     /// Validate project configuration
-    #[command(name = "config")]
+    #[command(name = "config-validate")]
     ConfigValidate(config_validate::ConfigValidateArgs),
 
     /// Manage Docker images
