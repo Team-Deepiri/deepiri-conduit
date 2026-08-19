@@ -181,7 +181,7 @@ pub fn rewrite(
         network_name.clone(),
         Some(NetworkConfig {
             driver: Some("bridge".into()),
-            external: None,
+            external: Some(true),
             extra: BTreeMap::new(),
         }),
     )]));
@@ -320,6 +320,19 @@ mod tests {
         assert!(compose.services["web"].ports.is_none());
         assert!(compose.services["db"].ports.is_none());
         assert_eq!(result.stripped_ports.len(), 2);
+
+        // Regression: compose containers must attach to the SAME external
+        // network conduit creates, not a compose-prefixed duplicate.
+        let nets = compose.networks.as_ref().unwrap();
+        assert_eq!(
+            nets["conduit-test"].as_ref().unwrap().external,
+            Some(true),
+            "conduit-managed network must be declared external"
+        );
+        assert_eq!(
+            compose.services["web"].networks,
+            Some(ServiceNetworks::List(vec!["conduit-test".into()]))
+        );
     }
 
     #[test]
