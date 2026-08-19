@@ -163,3 +163,54 @@ pub fn load() -> Result<GlobalConfig> {
         Ok(GlobalConfig::default())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_are_sane() {
+        let config = GlobalConfig::default();
+        assert_eq!(config.proxy.image, "traefik:v3.3");
+        assert_eq!(config.proxy.http_port, 80);
+        assert_eq!(config.proxy.https_port, 443);
+        assert!(!config.proxy.dashboard);
+        assert_eq!(config.proxy.dashboard_port, 8080);
+        assert_eq!(config.dns.strategy, "hosts");
+        assert!(config.dns.sudo);
+        assert_eq!(config.tunnels.postgres_range, [54320, 54399]);
+        assert_eq!(config.tunnels.mongodb_range, [27020, 27099]);
+        assert_eq!(config.tunnels.redis_range, [63800, 63899]);
+        assert_eq!(config.tunnels.mysql_range, [33060, 33099]);
+        assert_eq!(config.tunnels.default_range, [49200, 49299]);
+        assert_eq!(config.logging.level, "info");
+        assert!(config.logging.file.is_empty());
+    }
+
+    #[test]
+    fn partial_toml_applies_defaults() {
+        let config: GlobalConfig = toml::from_str("[proxy]\nhttp_port = 8080\n").unwrap();
+        assert_eq!(config.proxy.http_port, 8080);
+        assert_eq!(config.proxy.image, "traefik:v3.3");
+        assert_eq!(config.dns.strategy, "hosts");
+    }
+
+    #[test]
+    fn toml_roundtrip() {
+        let config = GlobalConfig::default();
+        let serialized = toml::to_string(&config).unwrap();
+        let parsed: GlobalConfig = toml::from_str(&serialized).unwrap();
+        assert_eq!(parsed.proxy.image, config.proxy.image);
+        assert_eq!(parsed.proxy.http_port, config.proxy.http_port);
+        assert_eq!(parsed.tunnels.postgres_range, config.tunnels.postgres_range);
+        assert_eq!(parsed.logging.level, config.logging.level);
+    }
+
+    #[test]
+    fn dirs_point_at_conduit() {
+        let dir = config_dir();
+        assert_eq!(dir.file_name().map(|n| n.to_string_lossy().into_owned()), Some("conduit".into()));
+        let dir = state_dir();
+        assert_eq!(dir.file_name().map(|n| n.to_string_lossy().into_owned()), Some("conduit".into()));
+    }
+}
