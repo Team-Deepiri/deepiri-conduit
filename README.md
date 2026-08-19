@@ -56,17 +56,32 @@ conduit down
 
 Use **`conduit ui --no-open`** if you do not want a browser tab opened automatically. **`conduit ui --port 8080`** changes the listen port.
 
+## Shell completions
+
+```bash
+conduit completions bash   # → source <(conduit completions bash) in ~/.bashrc
+conduit completions zsh    # → conduit completions zsh > "${fpath[1]}/_conduit"; then compinit
+conduit completions fish   # → conduit completions fish > ~/.config/fish/completions/conduit.fish
+```
+
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | `conduit ui` | Local web dashboard (state, routes, quick commands); default `http://127.0.0.1:9842` |
 | `conduit up` | Emit generated compose, create network, start Traefik if needed, `compose up` |
-| `conduit down` | `compose down` with same `-f`/`-p`, cleanup network, sync `/etc/hosts` |
+| `conduit down` | `compose down` with same `-f`/`-p`, cleanup network, sync `/etc/hosts`; `--volumes` also removes data volumes |
 | `conduit ps` | Projects + services from state / Docker |
 | `conduit logs` | Uses generated compose + project name when present |
 | `conduit db <svc>` | Ephemeral localhost → container TCP forward |
-| `conduit doctor` | Docker, compose CLI, ports, hosts, proxy |
+| `conduit doctor` | Docker, compose CLI, ports, hosts, proxy; `--fix` repairs a corrupt state file |
+| `conduit top` | Per-container CPU/memory/network/block I/O (like `docker stats`) |
+| `conduit route` | Routing table (domain → target), also in `--json` |
+| `conduit config-validate` | Validate a compose project + optional `.conduit.yml` |
+| `conduit completions` | Generate shell completions: `conduit completions bash\|zsh\|fish` |
+| `conduit snapshot` | Create/restore data volume snapshots |
+| `conduit link` / `unlink` | Connect/disconnect two project networks |
+| `conduit submod` | Resolve submodule conflicts between two branches |
 
 ## Configuration (`.conduit.yml`)
 
@@ -110,6 +125,8 @@ databases:
 | Port 80 in use | Traefik needs **80** for HTTP routing. Stop nginx/apache or change `proxy.http_port` in `~/.config/conduit/config.toml` (advanced). |
 | Routes don’t resolve | Run `conduit doctor`. Hosts sync may need **sudo** for `/etc/hosts`; on WSL2 you may also sync Windows hosts (see `dns/hosts.rs`). |
 | `conduit up` fails on compose | Run `docker compose -f <your-file> config` in the same directory to see compose errors. |
+| Routes return `504` | The proxy and project containers must share one network. If you upgraded from an older conduit, `conduit down` then `conduit up` again so containers join the conduit-managed network. |
+| Traefik logs `client version 1.24 is too old` | Docker Engine 29+ requires API ≥ 1.44. Pull `traefik:v3.6` (conduit's default since 0.1.0) — `docker pull traefik:v3.6`, then `conduit proxy restart`. |
 | Stale state | `conduit down` then remove `.conduit/cache/` if needed; state lives under `~/.local/share/conduit/state.json`. |
 
 Run **`conduit doctor`** before reporting issues.
