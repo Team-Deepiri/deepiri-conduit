@@ -27,6 +27,18 @@ fn version_prints_semver() {
 }
 
 #[test]
+fn completions_generates_shell_scripts() {
+    for shell in ["bash", "zsh", "fish"] {
+        Command::cargo_bin("conduit")
+            .expect("binary exists")
+            .args(["completions", shell])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("conduit"));
+    }
+}
+
+#[test]
 fn help_lists_commands() {
     Command::cargo_bin("conduit")
         .expect("binary exists")
@@ -70,6 +82,7 @@ fn every_subcommand_help_parses_without_clap_panic() {
         "port-forward",
         "proxy",
         "connect",
+        "completions",
     ] {
         Command::cargo_bin("conduit")
             .expect("binary exists")

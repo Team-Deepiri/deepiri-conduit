@@ -20,6 +20,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive", "env"] }
+clap_complete = "4"
 tokio = { version = "1", features = ["full"] }
 bollard = { version = "0.18", default-features = false, features = ["ssl", "rustls", "pipe"] }
 serde = { version = "1", features = ["derive"] }

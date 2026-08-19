@@ -1,4 +1,5 @@
 pub mod bench;
+pub mod completions;
 pub mod config_cmd;
 pub mod config_validate;
 pub mod connect;
@@ -137,6 +138,9 @@ pub enum Command {
 
     /// Connect to remote Docker hosts via SSH tunnel
     Connect(connect::ConnectArgs),
+
+    /// Generate shell completions (bash, zsh, fish, etc.)
+    Completions(completions::CompletionsArgs),
 }
 
 pub async fn run(cli: Cli) -> anyhow::Result<()> {
@@ -172,6 +176,7 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
         Command::Top(args) => top::run(args, &globals).await,
         Command::Snapshot(args) => snapshot::run(args, &globals).await,
         Command::Connect(args) => connect::run(args, &globals).await,
+        Command::Completions(args) => completions::run(args, &globals),
     }
 }
 
