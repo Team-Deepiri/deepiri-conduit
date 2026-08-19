@@ -39,6 +39,48 @@ fn help_lists_commands() {
 }
 
 #[test]
+fn every_subcommand_help_parses_without_clap_panic() {
+    // Regression: clap panics at startup in debug builds when a subcommand flag
+    // collides with a global short flag (e.g. `down -v` vs global `-v`).
+    for sub in [
+        "up",
+        "down",
+        "ps",
+        "logs",
+        "top",
+        "db",
+        "doctor",
+        "init",
+        "config",
+        "config-validate",
+        "route",
+        "link",
+        "unlink",
+        "snapshot",
+        "exec",
+        "run",
+        "cp",
+        "env",
+        "graph",
+        "image",
+        "bench",
+        "ui",
+        "describe",
+        "submod",
+        "port-forward",
+        "proxy",
+        "connect",
+    ] {
+        Command::cargo_bin("conduit")
+            .expect("binary exists")
+            .args([sub, "--help"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("panicked").not());
+    }
+}
+
+#[test]
 fn config_global_prints_config() {
     Command::cargo_bin("conduit")
         .expect("binary exists")
