@@ -141,7 +141,6 @@ pub enum Command {
 
 pub async fn run(cli: Cli) -> anyhow::Result<()> {
     let globals = GlobalOpts {
-        verbose: cli.verbose,
         json: cli.json,
         project_dir: cli.project_dir,
     };
@@ -178,9 +177,6 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
 
 /// Global options extracted from Cli, passed by reference to subcommands.
 pub struct GlobalOpts {
-    /// Enables debug logging (see `main` / `RUST_LOG`).
-    #[allow(dead_code)]
-    pub verbose: bool,
     pub json: bool,
     pub project_dir: Option<String>,
 }
