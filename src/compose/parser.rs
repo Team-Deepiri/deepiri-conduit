@@ -187,7 +187,10 @@ networks:
             _ => panic!("expected list form"),
         }
         let worker = &compose.services["worker"];
-        assert_eq!(worker.depends_on.as_ref().unwrap().service_names(), vec!["app".to_string()]);
+        assert_eq!(
+            worker.depends_on.as_ref().unwrap().service_names(),
+            vec!["app".to_string()]
+        );
         assert!(compose.networks.is_some());
     }
 

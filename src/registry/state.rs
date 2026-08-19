@@ -209,7 +209,10 @@ mod tests {
         assert_eq!(parsed.projects.len(), 1);
         let project = parsed.projects.get("demo").unwrap();
         assert_eq!(project.network, "conduit-demo");
-        assert_eq!(project.services["web"].domain.as_deref(), Some("web.demo.localhost"));
+        assert_eq!(
+            project.services["web"].domain.as_deref(),
+            Some("web.demo.localhost")
+        );
         assert_eq!(parsed.tunnels["demo-db"].host_port, 54321);
         assert_eq!(parsed.hosts_entries.len(), 1);
     }
@@ -230,7 +233,10 @@ mod tests {
         assert_eq!(parsed.version, 0);
         assert!(parsed.proxy.is_none());
         let project = parsed.projects.get("app").unwrap();
-        assert_eq!(project.generated_compose, crate::compose::emit::GENERATED_REL_PATH);
+        assert_eq!(
+            project.generated_compose,
+            crate::compose::emit::GENERATED_REL_PATH
+        );
         assert_eq!(project.compose_project_name, "");
         assert!(project.services.is_empty());
         assert!(project.routes.is_empty());

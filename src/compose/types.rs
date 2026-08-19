@@ -345,7 +345,10 @@ mod tests {
 
     #[test]
     fn short_port_internal_port() {
-        assert_eq!(PortMapping::Short("8000:8000".into()).internal_port(), Some(8000));
+        assert_eq!(
+            PortMapping::Short("8000:8000".into()).internal_port(),
+            Some(8000)
+        );
         assert_eq!(
             PortMapping::Short("5432:5432/tcp".into()).internal_port(),
             Some(5432)
@@ -354,13 +357,22 @@ mod tests {
             PortMapping::Short("127.0.0.1:5432:5432".into()).internal_port(),
             Some(5432)
         );
-        assert_eq!(PortMapping::Short("8080".into()).internal_port(), Some(8080));
-        assert_eq!(PortMapping::Short("not-a-port".into()).internal_port(), None);
+        assert_eq!(
+            PortMapping::Short("8080".into()).internal_port(),
+            Some(8080)
+        );
+        assert_eq!(
+            PortMapping::Short("not-a-port".into()).internal_port(),
+            None
+        );
     }
 
     #[test]
     fn short_port_host_port() {
-        assert_eq!(PortMapping::Short("8000:8000".into()).host_port(), Some(8000));
+        assert_eq!(
+            PortMapping::Short("8000:8000".into()).host_port(),
+            Some(8000)
+        );
         assert_eq!(
             PortMapping::Short("127.0.0.1:5432:5432".into()).host_port(),
             Some(5432)
@@ -406,7 +418,10 @@ mod tests {
     fn labels_map_and_list_operations() {
         let mut map_labels = Labels::Map(BTreeMap::from([("k".into(), "v".into())]));
         map_labels.set("k2".into(), "v2".into());
-        assert_eq!(map_labels.as_map().get("k2").map(String::as_str), Some("v2"));
+        assert_eq!(
+            map_labels.as_map().get("k2").map(String::as_str),
+            Some("v2")
+        );
 
         let mut list_labels = Labels::List(vec!["a=1".into(), "b=2".into()]);
         list_labels.set("a".into(), "3".into());
@@ -444,7 +459,8 @@ mod tests {
 
     #[test]
     fn guess_http_port_falls_back_to_port_env() {
-        let svc: Service = serde_yaml::from_str("image: nginx\nenvironment:\n  PORT: \"8080\"").unwrap();
+        let svc: Service =
+            serde_yaml::from_str("image: nginx\nenvironment:\n  PORT: \"8080\"").unwrap();
         assert_eq!(svc.guess_http_port(), Some(8080));
     }
 

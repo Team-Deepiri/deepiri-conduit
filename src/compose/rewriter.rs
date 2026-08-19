@@ -399,7 +399,10 @@ mod tests {
         };
 
         let result = rewrite(&mut compose, &config, "test");
-        assert!(compose.services["web"].ports.is_some(), "exposed ports kept");
+        assert!(
+            compose.services["web"].ports.is_some(),
+            "exposed ports kept"
+        );
         assert!(result.stripped_ports.is_empty());
     }
 

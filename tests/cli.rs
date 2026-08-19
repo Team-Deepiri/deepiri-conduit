@@ -4,7 +4,6 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
-use std::path::Path;
 use tempfile::tempdir;
 
 const FIXTURE: &str = include_str!("fixtures/docker-compose.fixture.yml");
@@ -13,11 +12,7 @@ fn fixture_project_dir() -> tempfile::TempDir {
     let dir = tempdir().expect("tempdir");
     let proj = dir.path().join("myproj");
     fs::create_dir_all(&proj).expect("mkdir proj");
-    fs::write(
-        proj.join("docker-compose.fixture.yml"),
-        FIXTURE,
-    )
-    .expect("write fixture");
+    fs::write(proj.join("docker-compose.fixture.yml"), FIXTURE).expect("write fixture");
     dir
 }
 
@@ -84,7 +79,10 @@ fn init_generates_conduit_yml() {
     assert!(generated.exists(), ".conduit.yml was not generated");
     let contents = fs::read_to_string(&generated).expect("read .conduit.yml");
     assert!(contents.contains("project: myproj"), "project name missing");
-    assert!(contents.contains("web.myproj.localhost"), "web route missing");
+    assert!(
+        contents.contains("web.myproj.localhost"),
+        "web route missing"
+    );
     assert!(contents.contains("compose_file: docker-compose.fixture.yml"));
 }
 
@@ -159,17 +157,18 @@ fn validate_detects_missing_compose_file() {
     let dir = tempdir().expect("tempdir");
     let proj = dir.path().join("nocompose");
     fs::create_dir_all(&proj).expect("mkdir");
-    fs::write(proj.join(".conduit.yml"), "project: nocompose\ncompose_file: missing.yml\n")
-        .expect("write config");
+    fs::write(
+        proj.join(".conduit.yml"),
+        "project: nocompose\ncompose_file: missing.yml\n",
+    )
+    .expect("write config");
 
     Command::cargo_bin("conduit")
         .expect("binary exists")
         .args(["config-validate", "--project-dir", proj.to_str().unwrap()])
         .assert()
         .success()
-        .stdout(predicate::str::contains("compose_file 'missing.yml' not found"));
-}
-
-fn path_to(path: &Path) -> &str {
-    path.to_str().expect("utf-8 path")
+        .stdout(predicate::str::contains(
+            "compose_file 'missing.yml' not found",
+        ));
 }

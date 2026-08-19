@@ -209,8 +209,14 @@ mod tests {
     #[test]
     fn dirs_point_at_conduit() {
         let dir = config_dir();
-        assert_eq!(dir.file_name().map(|n| n.to_string_lossy().into_owned()), Some("conduit".into()));
+        assert_eq!(
+            dir.file_name().map(|n| n.to_string_lossy().into_owned()),
+            Some("conduit".into())
+        );
         let dir = state_dir();
-        assert_eq!(dir.file_name().map(|n| n.to_string_lossy().into_owned()), Some("conduit".into()));
+        assert_eq!(
+            dir.file_name().map(|n| n.to_string_lossy().into_owned()),
+            Some("conduit".into())
+        );
     }
 }

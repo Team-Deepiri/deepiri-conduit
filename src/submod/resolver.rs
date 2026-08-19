@@ -107,42 +107,6 @@ impl Default for RepoScanner {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn normalize_repo_name_variants() {
-        assert_eq!(normalize_repo_name("myrepo"), "myrepo");
-        assert_eq!(
-            normalize_repo_name("https://github.com/team/repo.git"),
-            "repo"
-        );
-        assert_eq!(normalize_repo_name("team/repo"), "repo");
-        assert_eq!(normalize_repo_name("  repo  "), "repo");
-        assert_eq!(normalize_repo_name("git@github.com:team/repo.git"), "repo");
-    }
-
-    #[test]
-    fn normalize_branch_variants() {
-        assert_eq!(normalize_branch("main"), "main");
-        assert_eq!(normalize_branch(" origin/main "), "origin/main");
-        assert_eq!(normalize_branch("remotes/origin/main"), "remotes/origin/main");
-        assert_eq!(normalize_branch("feature/xyz"), "origin/feature/xyz");
-        assert_eq!(normalize_branch("HEAD"), "HEAD");
-    }
-
-    #[test]
-    fn find_local_repo_requires_git_dir() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::create_dir_all(dir.path().join("nested")).unwrap();
-        std::fs::write(dir.path().join("nested").join("file.txt"), "x").unwrap();
-
-        let scanner = RepoScanner::with_paths([dir.path().to_path_buf()]);
-        assert!(scanner.find_local_repo("nested").is_none());
-    }
-}
-
 fn normalize_repo_name(input: &str) -> String {
     let input = input.trim();
     let input = input.strip_suffix(".git").unwrap_or(input);
@@ -440,4 +404,43 @@ fn commit_score(commit: &str) -> Option<u32> {
             .take(8)
             .sum()
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalize_repo_name_variants() {
+        assert_eq!(normalize_repo_name("myrepo"), "myrepo");
+        assert_eq!(
+            normalize_repo_name("https://github.com/team/repo.git"),
+            "repo"
+        );
+        assert_eq!(normalize_repo_name("team/repo"), "repo");
+        assert_eq!(normalize_repo_name("  repo  "), "repo");
+        assert_eq!(normalize_repo_name("git@github.com:team/repo.git"), "repo");
+    }
+
+    #[test]
+    fn normalize_branch_variants() {
+        assert_eq!(normalize_branch("main"), "main");
+        assert_eq!(normalize_branch(" origin/main "), "origin/main");
+        assert_eq!(
+            normalize_branch("remotes/origin/main"),
+            "remotes/origin/main"
+        );
+        assert_eq!(normalize_branch("feature/xyz"), "origin/feature/xyz");
+        assert_eq!(normalize_branch("HEAD"), "HEAD");
+    }
+
+    #[test]
+    fn find_local_repo_requires_git_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("nested")).unwrap();
+        std::fs::write(dir.path().join("nested").join("file.txt"), "x").unwrap();
+
+        let scanner = RepoScanner::with_paths([dir.path().to_path_buf()]);
+        assert!(scanner.find_local_repo("nested").is_none());
+    }
 }

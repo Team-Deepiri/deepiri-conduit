@@ -44,24 +44,44 @@ impl SubmoduleConflict {
     }
 }
 
-fn commit_priority(commit: &str) -> Option<u32> {
-    if commit.len() < 40 {
-        return None;
-    }
-    u32::from_str_radix(&commit[0..8], 16).ok()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_commit_priority() {
-        let c1 = "abc1234567890def1234567890abcdef12345678";
-        let c2 = "ffffffffffffffffffffffffffffffffffffffff";
-        let c3 = "0000000000000000000000000000000000000000";
+    fn new_conflict_is_unresolved() {
+        let conflict = SubmoduleConflict::new(
+            "libs/shared".into(),
+            Some("abc123".into()),
+            Some("def456".into()),
+            "main".into(),
+            "feature/x".into(),
+        );
+        assert_eq!(conflict.path, "libs/shared");
+        assert_eq!(conflict.left_commit.as_deref(), Some("abc123"));
+        assert_eq!(conflict.right_commit.as_deref(), Some("def456"));
+        assert!(!conflict.resolved());
+        assert!(conflict.resolution.is_none());
+    }
 
-        assert!(commit_priority(c1).unwrap() > commit_priority(c3).unwrap());
-        assert_eq!(commit_priority(c2).unwrap(), u32::MAX);
+    #[test]
+    fn resolve_marks_conflict_resolved() {
+        let mut conflict = SubmoduleConflict::new(
+            "libs/shared".into(),
+            None,
+            Some("def456".into()),
+            "main".into(),
+            "feature/x".into(),
+        );
+        conflict.resolve(SubmoduleResolution::UseRight);
+        assert!(conflict.resolved());
+        assert_eq!(conflict.resolution, Some(SubmoduleResolution::UseRight));
+    }
+
+    #[test]
+    fn resolution_enum_roundtrips_through_serde() {
+        let json = serde_json::to_string(&SubmoduleResolution::UseHigher).unwrap();
+        let parsed: SubmoduleResolution = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, SubmoduleResolution::UseHigher);
     }
 }
