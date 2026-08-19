@@ -61,7 +61,9 @@ pub async fn run(args: RunArgs, cli: &GlobalOpts) -> Result<()> {
         .clone()
         .unwrap_or_else(|| "docker-compose.yml".to_string());
 
-    let tty_flag = if args.no_tty { "" } else { "-it" };
+    use std::io::IsTerminal;
+    let interactive = !args.no_tty && std::io::stdin().is_terminal();
+    let tty_flag = if interactive { "-it" } else { "" };
     let rm_flag = if args.rm { "--rm" } else { "" };
 
     let mut cmd_args = vec!["compose".to_string(), "-f".to_string(), compose_file];
