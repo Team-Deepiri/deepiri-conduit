@@ -40,7 +40,7 @@ impl Default for ProxyConfig {
 }
 
 fn default_proxy_image() -> String {
-    "traefik:v3.3".into()
+    "traefik:v3.6".into()
 }
 fn default_http_port() -> u16 {
     80
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn defaults_are_sane() {
         let config = GlobalConfig::default();
-        assert_eq!(config.proxy.image, "traefik:v3.3");
+        assert_eq!(config.proxy.image, "traefik:v3.6");
         assert_eq!(config.proxy.http_port, 80);
         assert_eq!(config.proxy.https_port, 443);
         assert!(!config.proxy.dashboard);
@@ -191,7 +191,7 @@ mod tests {
     fn partial_toml_applies_defaults() {
         let config: GlobalConfig = toml::from_str("[proxy]\nhttp_port = 8080\n").unwrap();
         assert_eq!(config.proxy.http_port, 8080);
-        assert_eq!(config.proxy.image, "traefik:v3.3");
+        assert_eq!(config.proxy.image, "traefik:v3.6");
         assert_eq!(config.dns.strategy, "hosts");
     }
 

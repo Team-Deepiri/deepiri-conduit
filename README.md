@@ -117,7 +117,7 @@ Run **`conduit doctor`** before reporting issues.
 ## Requirements
 
 - Docker Engine + **`docker compose`** CLI (for `compose config` / `up` / `down`).
-- Traefik image pull on first proxy start (e.g. `traefik:v3.3` — configurable in `~/.config/conduit/config.toml`).
+- Traefik image pull on first proxy start (e.g. `traefik:v3.6` — configurable in `~/.config/conduit/config.toml`).
 
 ## License
 

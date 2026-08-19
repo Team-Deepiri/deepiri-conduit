@@ -338,7 +338,7 @@ PROJECT    SERVICES   HEALTHY   NETWORK               UPTIME
 deepiri    26/26      24/26     conduit-deepiri-dev    2h 15m
 sideproj   5/5        5/5       conduit-sideproj       45m
 
-PROXY: running (traefik:v3.3) on :80/:443
+PROXY: running (traefik:v3.6) on :80/:443
 TUNNELS: 1 active (deepiri/postgres → localhost:54329)
 ```
 
@@ -504,7 +504,7 @@ OUTPUT:
   ✓ Port 80: available
   ✓ Port 443: available
   ✗ /etc/hosts: conduit entries stale (run `conduit up` to refresh)
-  ✓ Conduit proxy: running (traefik:v3.3)
+  ✓ Conduit proxy: running (traefik:v3.6)
   ✓ State file: valid (2 projects tracked)
   ✓ Disk space: 45GB free
   ✓ Docker socket: /var/run/docker.sock accessible
@@ -670,7 +670,7 @@ databases:
 
 [proxy]
 # Traefik image to use
-image = "traefik:v3.3"
+image = "traefik:v3.6"
 # Host ports for proxy (change if 80/443 conflict with something)
 http_port = 80
 https_port = 443
@@ -714,7 +714,7 @@ Conduit tracks all running projects in a JSON state file:
   "version": 1,
   "proxy": {
     "container_id": "abc123def456",
-    "image": "traefik:v3.3",
+    "image": "traefik:v3.6",
     "status": "running",
     "ports": { "http": 80, "https": 443 },
     "started_at": "2026-04-03T14:22:00Z"

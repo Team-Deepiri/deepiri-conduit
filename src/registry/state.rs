@@ -188,7 +188,7 @@ mod tests {
             version: 1,
             proxy: Some(ProxyState {
                 container_id: "abc123".into(),
-                image: "traefik:v3.3".into(),
+                image: "traefik:v3.6".into(),
                 status: "running".into(),
                 http_port: 80,
                 https_port: 443,
@@ -236,7 +236,7 @@ mod tests {
         let json = serde_json::to_string(&state).unwrap();
         let parsed: ConduitState = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed.version, state.version);
-        assert_eq!(parsed.proxy.as_ref().unwrap().image, "traefik:v3.3");
+        assert_eq!(parsed.proxy.as_ref().unwrap().image, "traefik:v3.6");
         assert_eq!(parsed.projects.len(), 1);
         let project = parsed.projects.get("demo").unwrap();
         assert_eq!(project.network, "conduit-demo");
