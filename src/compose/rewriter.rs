@@ -365,4 +365,129 @@ mod tests {
             .unwrap()
             .contains("api.myapp.localhost"));
     }
+
+    #[test]
+    fn is_http_service_excludes_infra() {
+        assert!(!is_http_service("db", &make_service("postgres:16", 5432)));
+        assert!(!is_http_service("redis", &make_service("redis:7", 6379)));
+        assert!(!is_http_service("web", &make_service("postgres:16", 5432)));
+        assert!(!is_http_service("cache", &make_service("memcached", 11211)));
+        assert!(is_http_service("web", &make_service("nginx", 80)));
+        assert!(is_http_service("api", &make_service("node:20", 3000)));
+    }
+
+    #[test]
+    fn expose_config_keeps_ports() {
+        let mut compose = ComposeFile {
+            name: Some("test".into()),
+            version: None,
+            services: BTreeMap::from([("web".into(), make_service("nginx", 8080))]),
+            volumes: None,
+            networks: None,
+        };
+
+        let config = ConduitConfig {
+            project: Some("test".into()),
+            compose_file: None,
+            domain: Some("test.localhost".into()),
+            routes: None,
+            groups: None,
+            expose: Some(BTreeMap::from([("web".into(), 8080)])),
+            env: None,
+            health: None,
+            databases: None,
+        };
+
+        let result = rewrite(&mut compose, &config, "test");
+        assert!(compose.services["web"].ports.is_some(), "exposed ports kept");
+        assert!(result.stripped_ports.is_empty());
+    }
+
+    #[test]
+    fn labels_only_mode_preserves_ports() {
+        let mut compose = ComposeFile {
+            name: Some("test".into()),
+            version: None,
+            services: BTreeMap::from([("web".into(), make_service("nginx", 8080))]),
+            volumes: None,
+            networks: None,
+        };
+
+        apply_conduit_labels_only(&mut compose, "test");
+        assert!(compose.services["web"].ports.is_some());
+        let labels = compose.services["web"].labels.as_ref().unwrap().as_map();
+        assert_eq!(labels.get("conduit.managed").unwrap(), "true");
+        assert_eq!(labels.get("conduit.project").unwrap(), "test");
+        assert_eq!(labels.get("conduit.service").unwrap(), "web");
+    }
+
+    #[test]
+    fn websocket_route_injects_middleware_labels() {
+        let mut compose = ComposeFile {
+            name: Some("chat".into()),
+            version: None,
+            services: BTreeMap::from([("ws".into(), make_service("node:20", 3000))]),
+            volumes: None,
+            networks: None,
+        };
+
+        let mut routes = BTreeMap::new();
+        routes.insert(
+            "ws".into(),
+            RouteConfig {
+                domain: "ws.chat.localhost".into(),
+                port: Some(3000),
+                websocket: Some(true),
+            },
+        );
+
+        let config = ConduitConfig {
+            project: Some("chat".into()),
+            compose_file: None,
+            domain: Some("chat.localhost".into()),
+            routes: Some(routes),
+            groups: None,
+            expose: None,
+            env: None,
+            health: None,
+            databases: None,
+        };
+
+        let result = rewrite(&mut compose, &config, "chat");
+        assert_eq!(result.routes.len(), 1);
+        assert!(result.routes[0].websocket);
+
+        let labels = compose.services["ws"].labels.as_ref().unwrap().as_map();
+        assert!(labels.contains_key(
+            "traefik.http.middlewares.chat-ws-ws.headers.customrequestheaders.Connection"
+        ));
+    }
+
+    #[test]
+    fn auto_route_http_service_without_explicit_route() {
+        let mut compose = ComposeFile {
+            name: Some("auto".into()),
+            version: None,
+            services: BTreeMap::from([("web".into(), make_service("nginx", 80))]),
+            volumes: None,
+            networks: None,
+        };
+
+        let config = ConduitConfig {
+            project: Some("auto".into()),
+            compose_file: None,
+            domain: Some("auto.localhost".into()),
+            routes: None,
+            groups: None,
+            expose: None,
+            env: None,
+            health: None,
+            databases: None,
+        };
+
+        let result = rewrite(&mut compose, &config, "auto");
+        assert_eq!(result.routes.len(), 1);
+        assert_eq!(result.routes[0].domain, "web.auto.localhost");
+        assert_eq!(result.routes[0].container_port, 80);
+    }
 }
