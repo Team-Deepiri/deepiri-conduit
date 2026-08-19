@@ -5,7 +5,9 @@ use std::collections::BTreeMap;
 /// Handles Compose v3.x format as output by `docker compose config`.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ComposeFile {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     #[serde(default)]
     pub services: BTreeMap<String, Service>,
@@ -15,7 +17,7 @@ pub struct ComposeFile {
     pub networks: Option<BTreeMap<String, Option<NetworkConfig>>>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct Service {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub image: Option<String>,
@@ -130,14 +132,14 @@ pub enum EnvFile {
 }
 
 /// Service networks: either a list of names or a map with per-network config.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ServiceNetworks {
     List(Vec<String>),
     Map(BTreeMap<String, Option<ServiceNetworkConfig>>),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct ServiceNetworkConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub aliases: Option<Vec<String>>,
