@@ -17,7 +17,7 @@ pub struct BenchArgs {
     pub count: u32,
 
     /// Concurrency level
-    #[arg(short, long, default_value = "1")]
+    #[arg(long, default_value = "1")]
     pub concurrency: u32,
 
     /// Target project (default: current directory)

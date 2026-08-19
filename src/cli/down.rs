@@ -15,7 +15,7 @@ use crate::registry::state;
 #[derive(Args)]
 pub struct DownArgs {
     /// Also remove named volumes (data loss!)
-    #[arg(short, long)]
+    #[arg(long)]
     pub volumes: bool,
 
     /// Stop ALL conduit-managed projects
