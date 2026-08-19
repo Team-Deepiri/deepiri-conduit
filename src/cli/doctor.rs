@@ -24,7 +24,9 @@ pub async fn run(args: DoctorArgs, _cli: &GlobalOpts) -> Result<()> {
     check_docker().await;
     check_docker_compose().await;
     check_writable_dirs();
-    check_port(80, "HTTP (Traefik `web` — proxy must bind here)");
+
+    let http_port = global::load().ok().map(|c| c.proxy.http_port).unwrap_or(80);
+    check_port(http_port, "HTTP (Traefik `web` — proxy binds here)");
     check_port(443, "HTTPS (optional; conduit uses HTTP-first routing)");
     check_hosts_file();
     check_proxy().await;
@@ -33,8 +35,9 @@ pub async fn run(args: DoctorArgs, _cli: &GlobalOpts) -> Result<()> {
 
     println!();
     println!(
-        "  {} If something fails: ensure Docker is running, port 80 is free for Traefik, and",
-        "ℹ".blue()
+        "  {} If something fails: ensure Docker is running, port {} is free for Traefik, and",
+        "ℹ".blue(),
+        http_port
     );
     println!("    `docker compose version` works. See README **Troubleshooting**.");
     println!();
