@@ -45,14 +45,10 @@ impl SubmoduleConflict {
 }
 
 fn commit_priority(commit: &str) -> Option<u32> {
-    commit.get(0..40).map(|_| {
-        commit
-            .chars()
-            .filter(|c| c.is_ascii_hexdigit())
-            .map(|c| c.to_digit(16).unwrap_or(0))
-            .take(8)
-            .sum()
-    })
+    if commit.len() < 40 {
+        return None;
+    }
+    u32::from_str_radix(&commit[0..8], 16).ok()
 }
 
 #[cfg(test)]
