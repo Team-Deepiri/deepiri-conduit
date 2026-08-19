@@ -59,7 +59,12 @@ pub async fn run(args: ExecArgs, cli: &GlobalOpts) -> Result<()> {
         return Ok(());
     }
 
-    let tty_flag = if args.no_tty { "--no-TTY" } else { "-it" };
+    use std::io::IsTerminal;
+    let tty_flags: Vec<&str> = if args.no_tty || !std::io::stdin().is_terminal() {
+        vec![]
+    } else {
+        vec!["-it"]
+    };
 
     println!(
         "  {} Exec {} → {} {}",
@@ -70,7 +75,9 @@ pub async fn run(args: ExecArgs, cli: &GlobalOpts) -> Result<()> {
     );
 
     let mut cmd = tokio::process::Command::new("docker");
-    cmd.args(["exec", tty_flag, &container_name])
+    cmd.arg("exec")
+        .args(tty_flags)
+        .arg(&container_name)
         .args(&args.command)
         .stdin(std::process::Stdio::inherit())
         .stdout(std::process::Stdio::inherit())
