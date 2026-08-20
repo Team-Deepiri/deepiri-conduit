@@ -1,4 +1,5 @@
 use anyhow::Result;
+use clap::Args;
 use colored::Colorize;
 use std::net::TcpListener;
 
@@ -9,24 +10,34 @@ use crate::docker;
 use crate::proxy;
 use crate::registry::state;
 
-pub async fn run(_cli: &GlobalOpts) -> Result<()> {
+#[derive(Args)]
+pub struct DoctorArgs {
+    /// Repair issues automatically where safe (e.g. corrupt state file)
+    #[arg(long)]
+    pub fix: bool,
+}
+
+pub async fn run(args: DoctorArgs, _cli: &GlobalOpts) -> Result<()> {
     println!("\n  {}\n", "Conduit Doctor".bold());
 
     check_docker_env();
     check_docker().await;
     check_docker_compose().await;
     check_writable_dirs();
-    check_port(80, "HTTP (Traefik `web` — proxy must bind here)");
+
+    let http_port = global::load().ok().map(|c| c.proxy.http_port).unwrap_or(80);
+    check_port(http_port, "HTTP (Traefik `web` — proxy binds here)");
     check_port(443, "HTTPS (optional; conduit uses HTTP-first routing)");
     check_hosts_file();
     check_proxy().await;
-    check_state_file();
+    check_state_file(args.fix);
     check_wsl();
 
     println!();
     println!(
-        "  {} If something fails: ensure Docker is running, port 80 is free for Traefik, and",
-        "ℹ".blue()
+        "  {} If something fails: ensure Docker is running, port {} is free for Traefik, and",
+        "ℹ".blue(),
+        http_port
     );
     println!("    `docker compose version` works. See README **Troubleshooting**.");
     println!();
@@ -198,7 +209,7 @@ async fn check_proxy() {
     }
 }
 
-fn check_state_file() {
+fn check_state_file(fix: bool) {
     match state::load() {
         Ok(s) => {
             let projects = s.projects.len();
@@ -210,7 +221,32 @@ fn check_state_file() {
             );
         }
         Err(e) => {
-            println!("  {} State file: {}", "⚠".yellow(), e);
+            if fix {
+                match state::repair_state() {
+                    Ok(true) => println!(
+                        "  {} State file: corrupt — backed up and reset",
+                        "✓".green()
+                    ),
+                    Ok(false) => {
+                        println!("  {} State file: {} (not repaired)", "⚠".yellow(), e);
+                    }
+                    Err(repair_err) => {
+                        println!(
+                            "  {} State file: {} — repair failed: {}",
+                            "⚠".yellow(),
+                            e,
+                            repair_err
+                        );
+                    }
+                }
+            } else {
+                println!(
+                    "  {} State file: {} — re-run with {} to repair",
+                    "⚠".yellow(),
+                    e,
+                    "doctor --fix".yellow()
+                );
+            }
         }
     }
 }

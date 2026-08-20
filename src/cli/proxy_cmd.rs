@@ -37,7 +37,7 @@ pub async fn run(args: ProxyCmdArgs, _cli: &GlobalOpts) -> Result<()> {
                     global.proxy.image
                 );
                 println!("  HTTP:  :{}", global.proxy.http_port);
-                println!("  HTTPS: :{}", global.proxy.https_port);
+                println!("  HTTPS: not enabled (HTTP-first routing)");
             }
             Some(status) => {
                 println!("  {} Proxy: {}", "⚠".yellow(), status.yellow());

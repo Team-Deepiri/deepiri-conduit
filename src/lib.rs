@@ -1,6 +1,4 @@
 //! deepiri-conduit — local Docker Compose dev orchestration (library + `conduit` binary).
-#![allow(dead_code)]
-// Intentionally keeps helpers and public-ish types for upcoming commands and compose edge cases.
 
 pub mod cli;
 pub mod compose;

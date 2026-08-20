@@ -338,7 +338,7 @@ PROJECT    SERVICES   HEALTHY   NETWORK               UPTIME
 deepiri    26/26      24/26     conduit-deepiri-dev    2h 15m
 sideproj   5/5        5/5       conduit-sideproj       45m
 
-PROXY: running (traefik:v3.3) on :80/:443
+PROXY: running (traefik:v3.6) on :80/:443
 TUNNELS: 1 active (deepiri/postgres → localhost:54329)
 ```
 
@@ -504,7 +504,7 @@ OUTPUT:
   ✓ Port 80: available
   ✓ Port 443: available
   ✗ /etc/hosts: conduit entries stale (run `conduit up` to refresh)
-  ✓ Conduit proxy: running (traefik:v3.3)
+  ✓ Conduit proxy: running (traefik:v3.6)
   ✓ State file: valid (2 projects tracked)
   ✓ Disk space: 45GB free
   ✓ Docker socket: /var/run/docker.sock accessible
@@ -670,7 +670,7 @@ databases:
 
 [proxy]
 # Traefik image to use
-image = "traefik:v3.3"
+image = "traefik:v3.6"
 # Host ports for proxy (change if 80/443 conflict with something)
 http_port = 80
 https_port = 443
@@ -714,7 +714,7 @@ Conduit tracks all running projects in a JSON state file:
   "version": 1,
   "proxy": {
     "container_id": "abc123def456",
-    "image": "traefik:v3.3",
+    "image": "traefik:v3.6",
     "status": "running",
     "ports": { "http": 80, "https": 443 },
     "started_at": "2026-04-03T14:22:00Z"
@@ -1796,123 +1796,123 @@ jobs:
 
 ### Phase 0: Project Bootstrap (days 1-2)
 
-- [ ] `cargo init` with workspace structure
-- [ ] `Cargo.toml` with all dependencies (version-pinned)
-- [ ] `.github/workflows/ci.yml` (fmt + clippy + test)
-- [ ] `README.md` (with architecture diagram, install instructions)
-- [ ] `LICENSE` (MIT)
-- [ ] `.gitignore`
-- [ ] Module skeleton (all `mod.rs` files with `todo!()` stubs)
-- [ ] `conduit --version` and `conduit --help` work
+- [x] `cargo init` with workspace structure
+- [x] `Cargo.toml` with all dependencies (version-pinned)
+- [x] `.github/workflows/ci.yml` (fmt + clippy + test)
+- [x] `README.md` (with architecture diagram, install instructions)
+- [x] `LICENSE` (Apache-2.0; original plan said MIT — Apache won)
+- [x] `.gitignore`
+- [x] Module skeleton (all `mod.rs` files with `todo!()` stubs)
+- [x] `conduit --version` and `conduit --help` work
 
-**Deliverable:** Repo compiles, CI passes, help text renders.
+**Deliverable:** Repo compiles, CI passes, help text renders. ✅
 
 ### Phase 1: Compose Parse + Container Lifecycle (weeks 1-2)
 
-- [ ] `compose::parser` — parse normalized YAML from `docker compose config`
-- [ ] `compose::types` — full type definitions for Compose v3.x
-- [ ] `compose::rewriter` — strip ports, replace networks, inject labels
-- [ ] `docker::client` — bollard wrapper with connection retry
-- [ ] `docker::network` — create, destroy, connect, list
-- [ ] `docker::container` — create, start, stop, remove, inspect, list
-- [ ] `registry::state` — read/write state JSON file
-- [ ] `cli::up` — full implementation (parse → rewrite → create network → start containers → save state)
-- [ ] `cli::down` — stop containers, remove network, clean state
-- [ ] `cli::ps` — list projects from state file, verify against Docker
-- [ ] Startup ordering via topological sort of `depends_on`
-- [ ] Progress display during startup (indicatif)
-- [ ] Unit tests for parser with Deepiri's real compose files as fixtures
-- [ ] Unit tests for rewriter
-- [ ] Integration test: up + ps + down with a simple compose
+- [x] `compose::parser` — parse normalized YAML from `docker compose config`
+- [x] `compose::types` — full type definitions for Compose v3.x
+- [x] `compose::rewriter` — strip ports, replace networks, inject labels
+- [x] `docker::client` — bollard wrapper with connection retry
+- [x] `docker::network` — create, destroy, connect, list
+- [x] `docker::container` — create, start, stop, remove, inspect, list
+- [x] `registry::state` — read/write state JSON file
+- [x] `cli::up` — full implementation (parse → rewrite → create network → start containers → save state)
+- [x] `cli::down` — stop containers, remove network, clean state
+- [x] `cli::ps` — list projects from state file, verify against Docker
+- [ ] Startup ordering via topological sort of `depends_on` — delegated to `docker compose` (compose owns ordering; conduit passes `-f` + `-p`)
+- [ ] Progress display during startup (indicatif) — colored step markers instead; indicatif not used
+- [x] Unit tests for parser with Deepiri's real compose files as fixtures
+- [x] Unit tests for rewriter
+- [x] Integration test: up + ps + down with a simple compose — Docker-free suite (`tests/cli.rs`, `tests/integration_compose.rs`) + live Docker 29 happy-path validated manually
 
-**Deliverable:** `conduit up` starts Deepiri's 26 services without host port bindings. `conduit down` stops them. `conduit ps` shows status.
+**Deliverable:** `conduit up` starts Deepiri's 26 services without host port bindings. `conduit down` stops them. `conduit ps` shows status. ✅
 
 ### Phase 2: HTTP Routing + DNS (weeks 3-4)
 
-- [ ] `proxy::manager` — create/start/stop Traefik container
-- [ ] `proxy::traefik` — generate Traefik static config, dynamic config per project
-- [ ] `proxy::tls` — generate self-signed CA + wildcard cert via `rcgen`
-- [ ] Traefik file provider: write dynamic config to Docker volume
-- [ ] Connect proxy container to project network
-- [ ] `dns::hosts` — add/remove entries in `/etc/hosts` with markers
-- [ ] sudo escalation for hosts file (prompt user, handle failure gracefully)
-- [ ] `config::conduit_yml` — parse `.conduit.yml`
-- [ ] `config::global` — parse `~/.config/conduit/config.toml`
-- [ ] Merge project config + global config
-- [ ] Route auto-generation: services without explicit routes get `<service>.<domain>`
-- [ ] WebSocket support via Traefik middleware labels
-- [ ] `cli::route` — display routing table
-- [ ] `cli::init` — generate `.conduit.yml` from existing compose
-- [ ] `cli::proxy` — `conduit proxy status`, `conduit proxy restart`
-- [ ] Write `.conduit.yml` for deepiri-platform
-- [ ] Integration test: start project, curl domain through proxy
-- [ ] Integration test: two projects, different domains, both work
+- [x] `proxy::manager` — create/start/stop Traefik container
+- [x] `proxy::traefik` — generate Traefik static config, dynamic config per project
+- [ ] `proxy::tls` — generate self-signed CA + wildcard cert via `rcgen` — HTTP-first for 0.1; HTTPS is a v1.0 story (ROADMAP)
+- [x] Traefik file provider: write dynamic config to Docker volume — implemented via Docker **labels provider** instead (routes from container labels)
+- [x] Connect proxy container to project network
+- [x] `dns::hosts` — add/remove entries in `/etc/hosts` with markers
+- [x] sudo escalation for hosts file (prompt user, handle failure gracefully)
+- [x] `config::conduit_yml` — parse `.conduit.yml`
+- [x] `config::global` — parse `~/.config/conduit/config.toml`
+- [x] Merge project config + global config
+- [x] Route auto-generation: services without explicit routes get `<service>.<domain>`
+- [x] WebSocket support via Traefik middleware labels
+- [x] `cli::route` — display routing table
+- [x] `cli::init` — generate `.conduit.yml` from existing compose
+- [x] `cli::proxy` — `conduit proxy status`, `conduit proxy restart`
+- [ ] Write `.conduit.yml` for deepiri-platform — belongs to the `deepiri-platform` repo, not conduit
+- [x] Integration test: start project, curl domain through proxy — validated live on Docker 29 (`HTTP 200`, proxy on custom `http_port`)
+- [x] Integration test: two projects, different domains, both work — validated live on Docker 29 (two stacks, `link`/`unlink` cross-network access)
 
-**Deliverable:** `frontend.deepiri.local` loads in browser after `conduit up`. Self-signed HTTPS works.
+**Deliverable:** `frontend.deepiri.local` loads in browser after `conduit up`. Self-signed HTTPS works. — HTTP routing ✅; HTTPS deferred to v1.0.
 
 ### Phase 3: TCP Tunnels (weeks 5-6)
 
-- [ ] `tunnel::tcp` — async TCP listener + bidirectional copy
-- [ ] Container IP resolution via bollard inspect
-- [ ] Free port allocation with preferred ranges per DB type
-- [ ] DB type detection from image name (`postgres:*` → PostgreSQL, `mongo:*` → MongoDB, etc.)
-- [ ] Credential extraction from compose `environment:` block
-- [ ] Connection string formatting for: PostgreSQL, MongoDB, Redis, MySQL, ClickHouse
+- [x] `tunnel::tcp` — async TCP listener + bidirectional copy
+- [x] Container IP resolution via bollard inspect
+- [x] Free port allocation with preferred ranges per DB type
+- [x] DB type detection from image name (`postgres:*` → PostgreSQL, `mongo:*` → MongoDB, etc.)
+- [x] Credential extraction from compose `environment:` block
+- [x] Connection string formatting for: PostgreSQL, MongoDB, Redis, MySQL, ClickHouse
 - [ ] Connection counter (active + total)
-- [ ] Graceful shutdown (Ctrl+C → drain → close)
+- [x] Graceful shutdown (Ctrl+C → drain → close)
 - [ ] Background tunnel mode (`conduit db --background`)
-- [ ] Tunnel state tracking in state file
-- [ ] `conduit ps` shows active tunnels
-- [ ] `cli::db` — full implementation
-- [ ] Integration test: start postgres, open tunnel, run query via `psql`
+- [x] Tunnel state tracking in state file
+- [x] `conduit ps` shows active tunnels
+- [x] `cli::db` — full implementation
+- [x] Integration test: start postgres, open tunnel, run query via `psql` — validated live on Docker 29 (postgres auth reached through tunnel)
 - [ ] Integration test: multiple simultaneous tunnels
 - [ ] Integration test: tunnel cleanup on Ctrl+C
 
-**Deliverable:** `conduit db deepiri postgres` prints a working `psql` command. Tunnel survives heavy query load.
+**Deliverable:** `conduit db deepiri postgres` prints a working `psql` command. Tunnel survives heavy query load. — prints working `psql` command ✅; load/cleanup tests pending.
 
 ### Phase 4: Multi-Project + Groups + Polish (weeks 7-8)
 
-- [ ] Service groups from `.conduit.yml` with dependency resolution
-- [ ] `conduit up --group core` starts infra + core only
-- [ ] Multi-project state tracking (multiple entries in state file)
-- [ ] `conduit link` / `conduit unlink` — connect/disconnect project networks
-- [ ] `cli::logs` — multiplexed, color-coded log tailing via bollard
-- [ ] Log filtering by service name and group
-- [ ] `cli::doctor` — comprehensive system checks:
-  - Docker version and connectivity
-  - Docker Compose CLI availability
-  - Port 80/443 availability
-  - /etc/hosts permissions and stale entries
-  - WSL2 detection and Windows hosts file sync
-  - Proxy container health
-  - State file validity
-  - Disk space
-- [ ] `--json` output for all commands (for scripting / CI)
-- [ ] `--no-proxy` mode (keep original port bindings)
-- [ ] `conduit down --volumes` (remove data volumes)
-- [ ] `conduit down --all` (stop everything)
-- [ ] Shell completions via `clap_complete` (bash, zsh, fish)
-- [ ] Stale state detection and cleanup
-- [ ] Improved error messages for common failures
+- [x] Service groups from `.conduit.yml` with dependency resolution
+- [x] `conduit up --group core` starts infra + core only
+- [x] Multi-project state tracking (multiple entries in state file)
+- [x] `conduit link` / `conduit unlink` — connect/disconnect project networks
+- [x] `cli::logs` — multiplexed, color-coded log tailing via bollard — delegated to `docker compose logs -f` with per-service selection
+- [x] Log filtering by service name and group
+- [x] `cli::doctor` — comprehensive system checks:
+  - [x] Docker version and connectivity
+  - [x] Docker Compose CLI availability
+  - [x] Port 80/443 availability — now checks configured `proxy.http_port`
+  - [x] /etc/hosts permissions and stale entries
+  - [x] WSL2 detection and Windows hosts file sync
+  - [x] Proxy container health
+  - [x] State file validity (`--fix` repairs)
+  - [ ] Disk space
+- [x] `--json` output for all commands (for scripting / CI) — on `ps`, `route`, `top`, `describe`; not uniform across all commands
+- [x] `--no-proxy` mode (keep original port bindings)
+- [x] `conduit down --volumes` (remove data volumes)
+- [x] `conduit down --all` (stop everything)
+- [x] Shell completions via `clap_complete` (bash, zsh, fish) — `conduit completions <shell>`
+- [x] Stale state detection and cleanup — `conduit doctor --fix` repairs corrupt state
+- [x] Improved error messages for common failures
 - [ ] Man page generation
 
 **Deliverable:** Full feature-complete v1.0.
 
 ### Phase 5: Distribution + Launch (week 9)
 
-- [ ] `.github/workflows/release.yml` — cross-compile 6 targets
-- [ ] `install.sh` curl script
+- [x] `.github/workflows/release.yml` — Linux x86_64; cross-compile 6 targets deferred
+- [x] `install.sh` curl script — `scripts/install.sh` + top-level `install.sh`
 - [ ] Homebrew tap (`Team-Deepiri/homebrew-tap`)
 - [ ] `cargo publish` to crates.io
-- [ ] `README.md` with:
-  - Architecture diagram
-  - Install instructions (all methods)
-  - Quick start guide
-  - Full CLI reference
-  - Configuration reference
-  - FAQ
+- [x] `README.md` with:
+  - [x] Architecture diagram
+  - [x] Install instructions (all methods)
+  - [x] Quick start guide
+  - [x] Full CLI reference
+  - [ ] Configuration reference (points at inline docs)
+  - [ ] FAQ
 - [ ] Demo GIF/video (asciinema recording)
-- [ ] `CHANGELOG.md`
+- [x] `CHANGELOG.md`
 - [ ] `.conduit.yml` committed to `deepiri-platform`
 - [ ] Announce to team
 

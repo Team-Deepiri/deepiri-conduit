@@ -2,12 +2,13 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::config::global;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConduitState {
+    #[serde(default)]
     pub version: u32,
     #[serde(default)]
     pub proxy: Option<ProxyState>,
@@ -75,33 +76,54 @@ fn state_file_path() -> PathBuf {
     global::state_dir().join("state.json")
 }
 
-/// Load state from disk.
-pub fn load() -> Result<ConduitState> {
-    let path = state_file_path();
+/// Back up a corrupt state file and replace it with a fresh one.
+/// Returns true when a repair was actually performed (file existed and failed to load).
+pub fn repair_state() -> Result<bool> {
+    repair_state_at(&state_file_path())
+}
+
+fn repair_state_at(path: &Path) -> Result<bool> {
+    if !path.exists() {
+        return Ok(false);
+    }
+    if load_from(path).is_ok() {
+        return Ok(false);
+    }
+
+    let stamp = Utc::now().format("%Y%m%d-%H%M%S");
+    let backup = path.with_file_name(format!("state.json.bak-{}", stamp));
+    std::fs::rename(path, &backup)
+        .with_context(|| format!("Failed to back up corrupt state file {}", path.display()))?;
+
+    save_to(
+        path,
+        &ConduitState {
+            version: 1,
+            ..Default::default()
+        },
+    )?;
+    Ok(true)
+}
+
+fn load_from(path: &Path) -> Result<ConduitState> {
     if !path.exists() {
         return Ok(ConduitState {
             version: 1,
             ..Default::default()
         });
     }
-
-    let contents = std::fs::read_to_string(&path)
+    let contents = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read state file {}", path.display()))?;
-
     let state: ConduitState = serde_json::from_str(&contents)
         .with_context(|| format!("Failed to parse state file {}", path.display()))?;
-
     Ok(state)
 }
 
-/// Save state to disk (with file locking).
-pub fn save(state: &ConduitState) -> Result<()> {
+fn save_to(path: &Path, state: &ConduitState) -> Result<()> {
     use fs2::FileExt;
     use std::io::Write;
 
-    let path = state_file_path();
     let dir = path.parent().unwrap();
-
     std::fs::create_dir_all(dir)
         .with_context(|| format!("Failed to create state directory {}", dir.display()))?;
 
@@ -111,7 +133,7 @@ pub fn save(state: &ConduitState) -> Result<()> {
         .write(true)
         .create(true)
         .truncate(true)
-        .open(&path)
+        .open(path)
         .with_context(|| format!("Failed to open state file {}", path.display()))?;
 
     file.lock_exclusive().context("Failed to lock state file")?;
@@ -120,6 +142,16 @@ pub fn save(state: &ConduitState) -> Result<()> {
     file.sync_all().ok();
 
     Ok(())
+}
+
+/// Load state from disk.
+pub fn load() -> Result<ConduitState> {
+    load_from(&state_file_path())
+}
+
+/// Save state to disk (with file locking).
+pub fn save(state: &ConduitState) -> Result<()> {
+    save_to(&state_file_path(), state)
 }
 
 /// Remove a project from state.
@@ -145,4 +177,148 @@ pub fn project_exists(project_name: &str) -> Result<bool> {
 pub fn list_projects() -> Result<Vec<String>> {
     let state = load()?;
     Ok(state.projects.keys().cloned().collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_state() -> ConduitState {
+        ConduitState {
+            version: 1,
+            proxy: Some(ProxyState {
+                container_id: "abc123".into(),
+                image: "traefik:v3.6".into(),
+                status: "running".into(),
+                http_port: 80,
+                https_port: 443,
+                started_at: Utc::now(),
+            }),
+            projects: BTreeMap::from([(
+                "demo".into(),
+                ProjectState {
+                    directory: "/tmp/demo".into(),
+                    compose_file: "docker-compose.yml".into(),
+                    generated_compose: ".conduit/cache/docker-compose.conduit.yml".into(),
+                    compose_project_name: "demo".into(),
+                    network: "conduit-demo".into(),
+                    started_at: Utc::now(),
+                    services: BTreeMap::from([(
+                        "web".into(),
+                        ServiceState {
+                            container_id: "abc124".into(),
+                            container_name: "demo-web-1".into(),
+                            image: "nginx".into(),
+                            status: "running".into(),
+                            domain: Some("web.demo.localhost".into()),
+                        },
+                    )]),
+                    routes: BTreeMap::from([("demo.localhost".into(), "web".into())]),
+                },
+            )]),
+            tunnels: BTreeMap::from([(
+                "demo-db".into(),
+                TunnelState {
+                    host_port: 54321,
+                    container_name: "demo-db-1".into(),
+                    container_port: 5432,
+                    pid: 4242,
+                    opened_at: Utc::now(),
+                },
+            )]),
+            hosts_entries: vec!["127.0.0.1 demo.localhost".into()],
+        }
+    }
+
+    #[test]
+    fn state_json_roundtrip() {
+        let state = sample_state();
+        let json = serde_json::to_string(&state).unwrap();
+        let parsed: ConduitState = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.version, state.version);
+        assert_eq!(parsed.proxy.as_ref().unwrap().image, "traefik:v3.6");
+        assert_eq!(parsed.projects.len(), 1);
+        let project = parsed.projects.get("demo").unwrap();
+        assert_eq!(project.network, "conduit-demo");
+        assert_eq!(
+            project.services["web"].domain.as_deref(),
+            Some("web.demo.localhost")
+        );
+        assert_eq!(parsed.tunnels["demo-db"].host_port, 54321);
+        assert_eq!(parsed.hosts_entries.len(), 1);
+    }
+
+    #[test]
+    fn partial_json_applies_defaults() {
+        let json = r#"{
+            "projects": {
+                "app": {
+                    "directory": "/srv/app",
+                    "compose_file": "docker-compose.dev.yml",
+                    "network": "conduit-app",
+                    "started_at": "2026-01-01T00:00:00Z"
+                }
+            }
+        }"#;
+        let parsed: ConduitState = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.version, 0);
+        assert!(parsed.proxy.is_none());
+        let project = parsed.projects.get("app").unwrap();
+        assert_eq!(
+            project.generated_compose,
+            crate::compose::emit::GENERATED_REL_PATH
+        );
+        assert_eq!(project.compose_project_name, "");
+        assert!(project.services.is_empty());
+        assert!(project.routes.is_empty());
+    }
+
+    #[test]
+    fn empty_state_default() {
+        let state = ConduitState::default();
+        assert_eq!(state.version, 0);
+        assert!(state.projects.is_empty());
+        assert!(state.proxy.is_none());
+        assert!(state.hosts_entries.is_empty());
+    }
+
+    #[test]
+    fn repair_state_skips_missing_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("state.json");
+        assert!(!repair_state_at(&path).unwrap());
+    }
+
+    #[test]
+    fn repair_state_skips_valid_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("state.json");
+        save_to(&path, &sample_state()).unwrap();
+        assert!(!repair_state_at(&path).unwrap());
+        assert!(path.exists());
+    }
+
+    #[test]
+    fn repair_state_backs_up_and_resets_corrupt_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("state.json");
+        std::fs::write(&path, "{ this is not json").unwrap();
+
+        assert!(repair_state_at(&path).unwrap());
+
+        let backups: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                e.file_name()
+                    .to_string_lossy()
+                    .starts_with("state.json.bak-")
+            })
+            .collect();
+        assert_eq!(backups.len(), 1, "corrupt file should be backed up");
+
+        let repaired = load_from(&path).unwrap();
+        assert_eq!(repaired.version, 1);
+        assert!(repaired.projects.is_empty());
+    }
 }

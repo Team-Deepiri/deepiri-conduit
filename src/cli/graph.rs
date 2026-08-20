@@ -96,7 +96,7 @@ fn print_ascii(
             continue;
         }
 
-        let is_highlighted = highlight.as_ref().map_or(false, |h| h == *svc_name);
+        let is_highlighted = highlight.as_ref().is_some_and(|h| h == *svc_name);
         let label = if is_highlighted {
             svc_name.bold().green().to_string()
         } else {

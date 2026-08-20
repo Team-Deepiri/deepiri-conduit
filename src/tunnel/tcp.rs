@@ -141,7 +141,7 @@ pub fn detect_db_type(image: &str) -> Option<DbType> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DbType {
     PostgreSQL,
     MongoDB,
@@ -232,5 +232,113 @@ impl DbType {
             DbType::MySQL => "MySQL",
             DbType::ClickHouse => "ClickHouse",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detect_db_type_by_image_name() {
+        assert_eq!(detect_db_type("postgres:16"), Some(DbType::PostgreSQL));
+        assert_eq!(detect_db_type("mongo:7"), Some(DbType::MongoDB));
+        assert_eq!(detect_db_type("redis:7"), Some(DbType::Redis));
+        assert_eq!(detect_db_type("mysql:8"), Some(DbType::MySQL));
+        assert_eq!(detect_db_type("mariadb:11"), Some(DbType::MySQL));
+        assert_eq!(detect_db_type("clickhouse:24"), Some(DbType::ClickHouse));
+        assert_eq!(detect_db_type("nginx"), None);
+        assert_eq!(detect_db_type(""), None);
+    }
+
+    #[test]
+    fn detect_db_type_is_case_insensitive() {
+        assert_eq!(detect_db_type("PostgreSQL"), Some(DbType::PostgreSQL));
+        assert_eq!(detect_db_type("MONGO"), Some(DbType::MongoDB));
+    }
+
+    #[test]
+    fn default_ports() {
+        assert_eq!(DbType::PostgreSQL.default_port(), 5432);
+        assert_eq!(DbType::MongoDB.default_port(), 27017);
+        assert_eq!(DbType::Redis.default_port(), 6379);
+        assert_eq!(DbType::MySQL.default_port(), 3306);
+        assert_eq!(DbType::ClickHouse.default_port(), 9000);
+    }
+
+    #[test]
+    fn connection_strings() {
+        assert_eq!(
+            DbType::PostgreSQL.connection_string("127.0.0.1", 54321, "dev", "secret", "app"),
+            "postgresql://dev:secret@127.0.0.1:54321/app"
+        );
+        assert_eq!(
+            DbType::MongoDB.connection_string("127.0.0.1", 27020, "dev", "secret", "app"),
+            "mongodb://dev:secret@127.0.0.1:27020/app"
+        );
+        assert_eq!(
+            DbType::Redis.connection_string("127.0.0.1", 63800, "", "", ""),
+            "redis://127.0.0.1:63800"
+        );
+        assert_eq!(
+            DbType::Redis.connection_string("127.0.0.1", 63800, "", "pw", ""),
+            "redis://:pw@127.0.0.1:63800"
+        );
+        assert_eq!(
+            DbType::MySQL.connection_string("127.0.0.1", 33060, "dev", "secret", "app"),
+            "mysql://dev:secret@127.0.0.1:33060/app"
+        );
+        assert_eq!(
+            DbType::ClickHouse.connection_string("127.0.0.1", 9000, "dev", "secret", "app"),
+            "clickhouse://dev:secret@127.0.0.1:9000/app"
+        );
+    }
+
+    #[test]
+    fn cli_commands() {
+        assert_eq!(
+            DbType::PostgreSQL.cli_command("127.0.0.1", 54321, "dev", "app"),
+            "psql -h 127.0.0.1 -p 54321 -U dev -d app"
+        );
+        assert_eq!(
+            DbType::MongoDB.cli_command("127.0.0.1", 27020, "", ""),
+            "mongosh --host 127.0.0.1 --port 27020"
+        );
+        assert_eq!(
+            DbType::Redis.cli_command("127.0.0.1", 63800, "", ""),
+            "redis-cli -h 127.0.0.1 -p 63800"
+        );
+        assert_eq!(
+            DbType::MySQL.cli_command("127.0.0.1", 33060, "dev", "app"),
+            "mysql -h 127.0.0.1 -P 33060 -u dev"
+        );
+        assert_eq!(
+            DbType::ClickHouse.cli_command("127.0.0.1", 9000, "", ""),
+            "clickhouse-client --host 127.0.0.1 --port 9000"
+        );
+    }
+
+    #[test]
+    fn display_names() {
+        assert_eq!(DbType::PostgreSQL.name(), "PostgreSQL");
+        assert_eq!(DbType::MongoDB.name(), "MongoDB");
+        assert_eq!(DbType::Redis.name(), "Redis");
+        assert_eq!(DbType::MySQL.name(), "MySQL");
+        assert_eq!(DbType::ClickHouse.name(), "ClickHouse");
+    }
+
+    #[test]
+    fn port_availability_checks() {
+        let listener = StdTcpListener::bind("0.0.0.0:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        assert!(check_port_available(port).is_err());
+        drop(listener);
+        assert!(check_port_available(port).is_ok());
+    }
+
+    #[test]
+    fn find_free_port_in_range() {
+        let port = find_free_port([49200, 49299]).unwrap();
+        assert!((49200..=49299).contains(&port));
     }
 }

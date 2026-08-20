@@ -5,7 +5,9 @@ use std::collections::BTreeMap;
 /// Handles Compose v3.x format as output by `docker compose config`.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ComposeFile {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     #[serde(default)]
     pub services: BTreeMap<String, Service>,
@@ -15,7 +17,7 @@ pub struct ComposeFile {
     pub networks: Option<BTreeMap<String, Option<NetworkConfig>>>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct Service {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub image: Option<String>,
@@ -130,14 +132,14 @@ pub enum EnvFile {
 }
 
 /// Service networks: either a list of names or a map with per-network config.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ServiceNetworks {
     List(Vec<String>),
     Map(BTreeMap<String, Option<ServiceNetworkConfig>>),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct ServiceNetworkConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub aliases: Option<Vec<String>>,
@@ -336,5 +338,173 @@ impl Service {
             }
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn short_port_internal_port() {
+        assert_eq!(
+            PortMapping::Short("8000:8000".into()).internal_port(),
+            Some(8000)
+        );
+        assert_eq!(
+            PortMapping::Short("5432:5432/tcp".into()).internal_port(),
+            Some(5432)
+        );
+        assert_eq!(
+            PortMapping::Short("127.0.0.1:5432:5432".into()).internal_port(),
+            Some(5432)
+        );
+        assert_eq!(
+            PortMapping::Short("8080".into()).internal_port(),
+            Some(8080)
+        );
+        assert_eq!(
+            PortMapping::Short("not-a-port".into()).internal_port(),
+            None
+        );
+    }
+
+    #[test]
+    fn short_port_host_port() {
+        assert_eq!(
+            PortMapping::Short("8000:8000".into()).host_port(),
+            Some(8000)
+        );
+        assert_eq!(
+            PortMapping::Short("127.0.0.1:5432:5432".into()).host_port(),
+            Some(5432)
+        );
+        assert_eq!(PortMapping::Short("8080".into()).host_port(), None);
+    }
+
+    #[test]
+    fn long_port_internal_and_host() {
+        let mapped = PortMapping::Long(LongPortMapping {
+            target: 5432,
+            published: Some(PortPublished::Port(15432)),
+            host_ip: None,
+            protocol: Some("tcp".into()),
+        });
+        assert_eq!(mapped.internal_port(), Some(5432));
+        assert_eq!(mapped.host_port(), Some(15432));
+
+        let ranged = PortMapping::Long(LongPortMapping {
+            target: 5432,
+            published: Some(PortPublished::Range("15432-15440".into())),
+            host_ip: None,
+            protocol: None,
+        });
+        assert_eq!(ranged.host_port(), None);
+    }
+
+    #[test]
+    fn environment_map_and_list() {
+        let map = Environment::Map(BTreeMap::from([
+            ("FOO".into(), Some("bar".into())),
+            ("EMPTY".into(), None),
+        ]));
+        assert_eq!(map.get("FOO").as_deref(), Some("bar"));
+        assert_eq!(map.get("EMPTY"), None);
+
+        let list = Environment::List(vec!["A=1".into(), "B".into()]);
+        assert_eq!(list.get("A").as_deref(), Some("1"));
+        assert_eq!(list.get("B").as_deref(), Some(""));
+    }
+
+    #[test]
+    fn labels_map_and_list_operations() {
+        let mut map_labels = Labels::Map(BTreeMap::from([("k".into(), "v".into())]));
+        map_labels.set("k2".into(), "v2".into());
+        assert_eq!(
+            map_labels.as_map().get("k2").map(String::as_str),
+            Some("v2")
+        );
+
+        let mut list_labels = Labels::List(vec!["a=1".into(), "b=2".into()]);
+        list_labels.set("a".into(), "3".into());
+        let list_map = list_labels.as_map();
+        assert_eq!(list_map.get("a").map(String::as_str), Some("3"));
+        assert_eq!(list_map.len(), 2);
+    }
+
+    #[test]
+    fn depends_on_service_names() {
+        let list = DependsOn::List(vec!["db".into(), "redis".into()]);
+        assert_eq!(
+            list.service_names(),
+            vec!["db".to_string(), "redis".to_string()]
+        );
+
+        let map = DependsOn::Map(BTreeMap::from([(
+            "db".into(),
+            DependsOnCondition {
+                condition: None,
+                restart: None,
+            },
+        )]));
+        assert_eq!(map.service_names(), vec!["db".to_string()]);
+    }
+
+    #[test]
+    fn guess_http_port_prefers_ports_over_env() {
+        let svc: Service = serde_yaml::from_str(
+            "image: nginx\nports:\n  - \"3000:3000\"\nenvironment:\n  PORT: \"8080\"",
+        )
+        .unwrap();
+        assert_eq!(svc.guess_http_port(), Some(3000));
+    }
+
+    #[test]
+    fn guess_http_port_falls_back_to_port_env() {
+        let svc: Service =
+            serde_yaml::from_str("image: nginx\nenvironment:\n  PORT: \"8080\"").unwrap();
+        assert_eq!(svc.guess_http_port(), Some(8080));
+    }
+
+    #[test]
+    fn guess_http_port_returns_none_when_unknown() {
+        let svc: Service = serde_yaml::from_str("image: nginx").unwrap();
+        assert_eq!(svc.guess_http_port(), None);
+    }
+
+    #[test]
+    fn compose_file_serde_roundtrip() {
+        let yaml = r#"
+name: demo
+services:
+  web:
+    image: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./html:/usr/share/nginx/html
+  db:
+    image: postgres:16
+volumes:
+  data: {}
+networks:
+  backend:
+    driver: bridge
+"#;
+        let compose: ComposeFile = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(compose.name.as_deref(), Some("demo"));
+        assert_eq!(compose.services.len(), 2);
+        assert!(compose.volumes.as_ref().unwrap().contains_key("data"));
+        assert!(compose.networks.as_ref().unwrap().contains_key("backend"));
+
+        let re_serialized = serde_yaml::to_string(&compose).unwrap();
+        let parsed_again: ComposeFile = serde_yaml::from_str(&re_serialized).unwrap();
+        assert_eq!(parsed_again.services.len(), compose.services.len());
+    }
+
+    #[test]
+    fn service_keeps_unknown_fields_in_extra() {
+        let svc: Service = serde_yaml::from_str("image: nginx\ncap_add:\n  - NET_ADMIN").unwrap();
+        assert!(svc.extra.contains_key("cap_add"));
     }
 }

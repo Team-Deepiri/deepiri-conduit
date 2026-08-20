@@ -93,6 +93,7 @@ pub fn find_compose_file(project_dir: &Path) -> Option<std::path::PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compose::types::ServiceNetworks;
     use std::io::Write;
     use tempfile::NamedTempFile;
 
@@ -144,5 +145,57 @@ services:
             found.ends_with("docker-compose.dev.yml"),
             "dev file should take priority"
         );
+    }
+
+    #[test]
+    fn find_compose_file_yaml_variants() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("compose.yaml"), "services: {}").unwrap();
+        let found = find_compose_file(dir.path()).unwrap();
+        assert!(found.ends_with("compose.yaml"));
+
+        let dir2 = tempfile::tempdir().unwrap();
+        std::fs::write(dir2.path().join("compose.yml"), "services: {}").unwrap();
+        let found = find_compose_file(dir2.path()).unwrap();
+        assert!(found.ends_with("compose.yml"));
+    }
+
+    #[test]
+    fn parse_str_handles_env_file_and_networks() {
+        let yaml = r#"
+services:
+  app:
+    image: node:20
+    env_file: .env
+    networks:
+      - backend
+  worker:
+    image: node:20
+    depends_on:
+      - app
+networks:
+  backend:
+    driver: bridge
+"#;
+        let compose = parse_str(yaml).unwrap();
+        assert_eq!(compose.services.len(), 2);
+        let app = &compose.services["app"];
+        assert!(app.env_file.is_some());
+        let networks = app.networks.as_ref().unwrap();
+        match networks {
+            ServiceNetworks::List(list) => assert_eq!(list, &vec!["backend".to_string()]),
+            _ => panic!("expected list form"),
+        }
+        let worker = &compose.services["worker"];
+        assert_eq!(
+            worker.depends_on.as_ref().unwrap().service_names(),
+            vec!["app".to_string()]
+        );
+        assert!(compose.networks.is_some());
+    }
+
+    #[test]
+    fn parse_str_rejects_invalid_yaml() {
+        assert!(parse_str("services:\n  web: [").is_err());
     }
 }

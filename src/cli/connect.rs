@@ -75,7 +75,7 @@ async fn connect_ssh(args: ConnectSshArgs) -> Result<()> {
     let connection_name = args
         .name
         .clone()
-        .unwrap_or_else(|| args.destination.replace('@', "_").replace(':', "_"));
+        .unwrap_or_else(|| args.destination.replace(['@', ':'], "_"));
 
     let pid_file = get_pid_file(&connection_name);
 
