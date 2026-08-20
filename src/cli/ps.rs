@@ -86,7 +86,7 @@ async fn print_summary(conduit_state: &state::ConduitState) -> Result<()> {
             name,
             format!("{}/{}", running, total),
             status,
-            &project.network,
+            project.network,
             uptime,
         );
     }
