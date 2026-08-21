@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use clap::Args;
 use colored::Colorize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::cli::GlobalOpts;
 use crate::config;
@@ -90,11 +90,11 @@ fn get_project_dir(cli: &GlobalOpts, project_arg: &Option<String>) -> Result<Pat
     std::env::current_dir().context("Failed to get current directory")
 }
 
-fn snapshots_dir(project_dir: &PathBuf) -> PathBuf {
+fn snapshots_dir(project_dir: &Path) -> PathBuf {
     project_dir.join(SNAPSHOTS_SUBDIR)
 }
 
-fn get_project_volumes(project_dir: &PathBuf) -> Result<Vec<String>> {
+fn get_project_volumes(project_dir: &Path) -> Result<Vec<String>> {
     let conduit_config = config::load_project_config(project_dir).unwrap_or_default();
     let compose_path = if let Some(file) = &conduit_config.compose_file {
         project_dir.join(file)
@@ -106,12 +106,12 @@ fn get_project_volumes(project_dir: &PathBuf) -> Result<Vec<String>> {
     let mut volumes = Vec::new();
 
     if let Some(vol_config) = &compose.volumes {
-        for (name, _config) in vol_config {
+        for name in vol_config.keys() {
             volumes.push(name.clone());
         }
     }
 
-    for (_svc_name, svc) in &compose.services {
+    for svc in compose.services.values() {
         if let Some(vols) = &svc.volumes {
             for vol in vols {
                 if let Some(vol_str) = vol.as_str() {
@@ -119,10 +119,9 @@ fn get_project_volumes(project_dir: &PathBuf) -> Result<Vec<String>> {
                         if !first.starts_with('.')
                             && !first.starts_with('/')
                             && !first.starts_with('~')
+                            && !volumes.contains(&first.to_string())
                         {
-                            if !volumes.contains(&first.to_string()) {
-                                volumes.push(first.to_string());
-                            }
+                            volumes.push(first.to_string());
                         }
                     }
                 }

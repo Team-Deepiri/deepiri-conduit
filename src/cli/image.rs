@@ -82,7 +82,7 @@ async fn list_images(docker: &Docker, args: ImageListArgs) -> Result<()> {
     }
 
     if images.is_empty() {
-        println!("  No images found");
+        println!("  No conduit-managed images found (use --all to list everything)");
         return Ok(());
     }
 

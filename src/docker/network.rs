@@ -58,18 +58,28 @@ pub async fn connect_container(docker: &Docker, network: &str, container: &str) 
         endpoint_config: EndpointSettings::default(),
     };
 
-    docker
-        .connect_network(network, config)
-        .await
-        .with_context(|| {
+    match docker.connect_network(network, config).await {
+        Ok(_) => {
+            debug!("Connected {} to network {}", container, network);
+            Ok(())
+        }
+        Err(bollard::errors::Error::DockerResponseServerError {
+            status_code: 403,
+            message,
+        }) if message.contains("already exists") => {
+            debug!(
+                "Container {} already connected to network {}",
+                container, network
+            );
+            Ok(())
+        }
+        Err(e) => Err(e).with_context(|| {
             format!(
                 "Failed to connect container {} to network {}",
                 container, network
             )
-        })?;
-
-    debug!("Connected {} to network {}", container, network);
-    Ok(())
+        }),
+    }
 }
 
 /// Disconnect a container from a network.

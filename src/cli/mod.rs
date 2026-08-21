@@ -1,4 +1,5 @@
 pub mod bench;
+pub mod completions;
 pub mod config_cmd;
 pub mod config_validate;
 pub mod connect;
@@ -80,7 +81,7 @@ pub enum Command {
     Unlink(link::UnlinkArgs),
 
     /// Check system requirements and diagnose issues
-    Doctor,
+    Doctor(doctor::DoctorArgs),
 
     /// Generate a .conduit.yml from an existing compose file
     Init(init::InitArgs),
@@ -123,7 +124,7 @@ pub enum Command {
     Bench(bench::BenchArgs),
 
     /// Validate project configuration
-    #[command(name = "config")]
+    #[command(name = "config-validate")]
     ConfigValidate(config_validate::ConfigValidateArgs),
 
     /// Manage Docker images
@@ -137,11 +138,13 @@ pub enum Command {
 
     /// Connect to remote Docker hosts via SSH tunnel
     Connect(connect::ConnectArgs),
+
+    /// Generate shell completions (bash, zsh, fish, etc.)
+    Completions(completions::CompletionsArgs),
 }
 
 pub async fn run(cli: Cli) -> anyhow::Result<()> {
     let globals = GlobalOpts {
-        verbose: cli.verbose,
         json: cli.json,
         project_dir: cli.project_dir,
     };
@@ -154,7 +157,7 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
         Command::Route(args) => route::run(args, &globals).await,
         Command::Link(args) => link::run_link(args, &globals).await,
         Command::Unlink(args) => link::run_unlink(args, &globals).await,
-        Command::Doctor => doctor::run(&globals).await,
+        Command::Doctor(args) => doctor::run(args, &globals).await,
         Command::Init(args) => init::run(args, &globals).await,
         Command::Config(args) => config_cmd::run(args, &globals).await,
         Command::Proxy(args) => proxy_cmd::run(args, &globals).await,
@@ -173,14 +176,12 @@ pub async fn run(cli: Cli) -> anyhow::Result<()> {
         Command::Top(args) => top::run(args, &globals).await,
         Command::Snapshot(args) => snapshot::run(args, &globals).await,
         Command::Connect(args) => connect::run(args, &globals).await,
+        Command::Completions(args) => completions::run(args, &globals),
     }
 }
 
 /// Global options extracted from Cli, passed by reference to subcommands.
 pub struct GlobalOpts {
-    /// Enables debug logging (see `main` / `RUST_LOG`).
-    #[allow(dead_code)]
-    pub verbose: bool,
     pub json: bool,
     pub project_dir: Option<String>,
 }

@@ -19,6 +19,16 @@ A **small, fast CLI** that makes multi-service Docker Compose tolerable locally:
 - `.conduit.yml`: routes, groups, `expose`, database hints for `conduit db`
 - State under `~/.local/share/conduit/`, `/etc/hosts` sync (multi-project safe)
 - `conduit db` with env + YAML credential resolution
+- `conduit doctor --fix` repairs a corrupt state file (backup + reset)
+- `conduit top` (CPU/memory/NET/BLK columns), `conduit snapshot`, `conduit route --json`
+- `conduit completions` (bash/zsh/fish), `conduit config-validate`
+- Submodule conflict resolution (`conduit submod`)
+- Fixed on the 0.1.x path, verified with a live Docker 29 stack:
+  - generated compose never emits `name`/`version: null` (compose rejected it)
+  - project containers join the **same external network** as the proxy (routes returned 504)
+  - proxy network connect is idempotent across repeated `conduit up`
+  - default proxy image `traefik:v3.6` (Docker 29 API compat)
+  - no clap short-flag collisions (previously crashed `down`/`bench`)
 - CI: fmt, clippy, test, release build ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)); optional tagged [releases](.github/workflows/release.yml)
 - Library crate + integration tests (`tests/integration_compose.rs`, no Docker required)
 - Apache-2.0, `Cargo.lock` tracked
@@ -76,4 +86,4 @@ Items here are **intentionally unordered**; they move into versioned milestones 
 
 ---
 
-*Last updated: 2026-04*
+*Last updated: 2026-08*

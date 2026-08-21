@@ -17,7 +17,7 @@ pub struct BenchArgs {
     pub count: u32,
 
     /// Concurrency level
-    #[arg(short, long, default_value = "1")]
+    #[arg(long, default_value = "1")]
     pub concurrency: u32,
 
     /// Target project (default: current directory)
@@ -33,10 +33,10 @@ pub async fn run(args: BenchArgs, _cli: &GlobalOpts) -> Result<()> {
     let conduit_state = state::load()?;
 
     let routes = if let Some(single_route) = &args.route {
-        vec![(format!("custom"), single_route.clone())]
+        vec![("custom".to_string(), single_route.clone())]
     } else {
         let mut all_routes = Vec::new();
-        for (_name, project) in &conduit_state.projects {
+        for project in conduit_state.projects.values() {
             if let Some(ref project_name) = args.project {
                 let name = if let Some((name, _)) = conduit_state
                     .projects

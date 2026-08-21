@@ -35,7 +35,6 @@ pub struct TopArgs {
 struct ContainerStats {
     cpu_percent: f64,
     memory_usage_mb: f64,
-    memory_limit_mb: f64,
     memory_percent: f64,
     network_rx_mb: f64,
     network_tx_mb: f64,
@@ -111,7 +110,6 @@ async fn print_stats(
                     ContainerStats {
                         cpu_percent: 0.0,
                         memory_usage_mb: 0.0,
-                        memory_limit_mb: 0.0,
                         memory_percent: 0.0,
                         network_rx_mb: 0.0,
                         network_tx_mb: 0.0,
@@ -154,15 +152,19 @@ async fn print_stats(
     }
 
     println!(
-        "  {:<18} {:<22} {:>8} {:>12} {:>12} {:>6}",
+        "  {:<18} {:<22} {:>8} {:>12} {:>12} {:>6} {:>10} {:>10} {:>10} {:>10}",
         "PROJECT".bold(),
         "SERVICE".bold(),
         "CPU %".bold(),
         "MEM USAGE".bold(),
         "MEM %".bold(),
         "PIDS".bold(),
+        "NET RX".bold(),
+        "NET TX".bold(),
+        "BLK RD".bold(),
+        "BLK WR".bold(),
     );
-    println!("  {}", "─".repeat(85));
+    println!("  {}", "─".repeat(125));
 
     for (project, service, stats) in &all_stats {
         let cpu_str = format!("{:.1}%", stats.cpu_percent);
@@ -192,16 +194,24 @@ async fn print_stats(
         };
 
         println!(
-            "  {:<18} {:<22} {:>8} {:>12} {:>12} {:>6}",
-            project, service, cpu_colored, mem_colored, pct_colored, stats.pids,
+            "  {:<18} {:<22} {:>8} {:>12} {:>12} {:>6} {:>10} {:>10} {:>10} {:>10}",
+            project,
+            service,
+            cpu_colored,
+            mem_colored,
+            pct_colored,
+            stats.pids,
+            format!("{:.1}MB", stats.network_rx_mb),
+            format!("{:.1}MB", stats.network_tx_mb),
+            format!("{:.1}MB", stats.block_read_mb),
+            format!("{:.1}MB", stats.block_write_mb),
         );
     }
 
     if is_once {
         println!();
         println!(
-            "  Use {} without {} for live refresh",
-            "conduit top",
+            "  Use conduit top without {} for live refresh",
             "--once".cyan()
         );
     }
@@ -245,12 +255,12 @@ async fn get_container_stats(
                 0.0
             };
 
-            let pids = stats.pids_stats.current.unwrap_or(0) as u64;
+            let pids = stats.pids_stats.current.unwrap_or(0);
 
             let mut network_rx = 0u64;
             let mut network_tx = 0u64;
             if let Some(networks) = &stats.networks {
-                for (_name, net) in networks {
+                for net in networks.values() {
                     network_rx += net.rx_bytes;
                     network_tx += net.tx_bytes;
                 }
@@ -273,7 +283,6 @@ async fn get_container_stats(
             Ok(ContainerStats {
                 cpu_percent,
                 memory_usage_mb: memory_usage / 1_000_000.0,
-                memory_limit_mb: memory_limit / 1_000_000.0,
                 memory_percent,
                 network_rx_mb: network_rx as f64 / 1_000_000.0,
                 network_tx_mb: network_tx as f64 / 1_000_000.0,

@@ -14,7 +14,6 @@ const BLUE: &str = "\x1b[0;34m";
 const MAGENTA: &str = "\x1b[0;35m";
 const CYAN: &str = "\x1b[0;36m";
 const WHITE: &str = "\x1b[1;37m";
-const BOLD: &str = "\x1b[1m";
 const RESET: &str = "\x1b[0m";
 
 fn banner() {

@@ -86,17 +86,21 @@ async fn print_summary(conduit_state: &state::ConduitState) -> Result<()> {
             name,
             format!("{}/{}", running, total),
             status,
-            &project.network,
+            project.network,
             uptime,
         );
     }
 
     if let Some(docker) = &docker {
         let proxy_status = proxy::manager::get_proxy_status(docker).await?;
+        let http_port = crate::config::global::load()
+            .ok()
+            .map(|c| c.proxy.http_port)
+            .unwrap_or(80);
         println!();
         match proxy_status {
             Some(status) if status == "running" => {
-                println!("  PROXY: {} (traefik) on :80/:443", "running".green());
+                println!("  PROXY: {} (traefik) on :{}", "running".green(), http_port);
             }
             Some(status) => {
                 println!("  PROXY: {}", status.yellow());

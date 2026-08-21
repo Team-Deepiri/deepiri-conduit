@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Args;
 use colored::Colorize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::cli::GlobalOpts;
 use crate::compose::parser;
@@ -217,7 +217,7 @@ fn resolve_project_dir(cli: &GlobalOpts) -> PathBuf {
     }
 }
 
-fn resolve_config_path(args: &ConfigValidateArgs, project_dir: &PathBuf) -> Result<PathBuf> {
+fn resolve_config_path(args: &ConfigValidateArgs, project_dir: &Path) -> Result<PathBuf> {
     if let Some(file) = &args.file {
         let path = PathBuf::from(file);
         if path.is_absolute() {
